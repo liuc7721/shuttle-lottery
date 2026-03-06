@@ -355,6 +355,11 @@
 <div id="toast"></div>
 
 <script>
+  // ── Supabase ─────────────────────────────────────
+  const SUPABASE_URL      = 'https://fdaehvslcoiagwkepauw.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkYWVodnNsY29pYWd3a2VwYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjU5NjUsImV4cCI6MjA4ODM0MTk2NX0.7wVYRVtzqTU6IP8pDQ7WFkNybwD3GMHTrJ6sRErGSNg';
+  const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   // ── Auth check ──────────────────────────────────
   if (!sessionStorage.getItem('adminAuth')) {
     document.getElementById('authError').style.display = 'block';
@@ -362,11 +367,6 @@
     document.getElementById('appBody').style.display = 'block';
     init();
   }
-
-  // ── Supabase ─────────────────────────────────────
-  const SUPABASE_URL      = 'https://fdaehvslcoiagwkepauw.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkYWVodnNsY29pYWd3a2VwYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjU5NjUsImV4cCI6MjA4ODM0MTk2NX0.7wVYRVtzqTU6IP8pDQ7WFkNybwD3GMHTrJ6sRErGSNg';
-  const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ── State ────────────────────────────────────────
   let allEmployees = [];
