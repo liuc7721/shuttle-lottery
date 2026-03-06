@@ -2,7 +2,7 @@
 // 日常更新請使用後台「儲存到雲端」，資料將同步至 Supabase
 const LOTTERY_DATA = {
   year: 2026,
-  event: "捷領未來駿躍新程",
+  event: "五崧捷運2026年度春酒",
   prizes: [
     { id: 1, rank: 1, name: "頭獎",       value: 100000, count:   2, winners: [] },
     { id: 2, rank: 2, name: "特獎",       value:  30000, count:   2, winners: [] },

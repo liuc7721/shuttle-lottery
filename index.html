@@ -64,7 +64,7 @@
         }
 
         .header-logo {
-            height: 72px;
+            height: 144px;
             border-radius: 6px;
             flex-shrink: 0;
         }
@@ -406,7 +406,7 @@
             <div class="header-inner">
                 <img src="shuttle.jpg" alt="Shuttle" class="header-logo">
                 <div class="header-text">
-                    <h1><i class="fas fa-trophy"></i> 中獎查詢 Lucky Draw Winner List</h1>
+                    <h1><i class="fas fa-trophy"></i> 中獎查詢 Good Luck</h1>
                     <p id="eventSubtitle" class="event-subtitle"></p>
                 </div>
             </div>
@@ -465,7 +465,7 @@
         // 顯示活動年度與名稱
         if (typeof LOTTERY_DATA !== 'undefined') {
             document.getElementById('eventSubtitle').textContent =
-                LOTTERY_DATA.year + ' · ' + LOTTERY_DATA.event;
+                LOTTERY_DATA.event;
         }
 
         // ── Init ─────────────────────────────────────────────────────
@@ -584,8 +584,8 @@
                     </td>
                     <td>
                         <div class="winner-details">
-                            ${r.sn    ? `<div class="staff-id"><i class="fas fa-ticket-alt"></i> 流水號 ${escHtml(r.sn)}</div>` : ''}
-                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> 工號 ${escHtml(r.empId)}</div>` : ''}
+                            ${r.sn    ? `<div class="staff-id">流水號 ${escHtml(r.sn)}</div>` : ''}
+                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> 工號 ${escHtml(String(r.empId).padStart(4, '0'))}</div>` : ''}
                             <div class="name">${escHtml(r.name)}</div>
                             <div class="company"><i class="fas fa-building"></i> ${escHtml(r.dept)}</div>
                         </div>
