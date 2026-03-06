@@ -996,7 +996,7 @@
   });
 
   // Employee autocomplete — auto-fill name & dept when emp_id is selected
-  document.getElementById('prizeList').addEventListener('change', function(e) {
+  document.getElementById('prizeList').addEventListener('input', function(e) {
     if (!e.target.classList.contains('we-empid') || !e.target.value.trim()) return;
     const emp = _employeeMap[e.target.value.trim().toUpperCase()];
     if (!emp) return;
