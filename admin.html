@@ -1068,7 +1068,7 @@
       if (!emp) return;
       row.querySelector('.we-name').value  = emp.name;
       row.querySelector('.we-dept').value  = emp.dept || '';
-      if (emp.sn && !row.querySelector('.we-sn').value) row.querySelector('.we-sn').value = emp.sn;
+      if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
     }
   });
 
