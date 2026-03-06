@@ -552,6 +552,7 @@
     <button class="btn-save" id="btnSave" onclick="saveToSupabase()">儲存到雲端</button>
     <button class="btn-csv" onclick="openCsvModal()">匯入 CSV</button>
     <button class="btn-export" onclick="exportAsCsv()">匯出 CSV</button>
+    <button class="btn-csv" onclick="window.location.href='eligible.html'">可抽獎名單</button>
     <button class="btn-logout" onclick="doLogout()">登出</button>
   </div>
 
@@ -656,6 +657,7 @@
     btn.textContent = '進入管理介面';
 
     if (ok) {
+      sessionStorage.setItem('adminAuth', '1');
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('adminApp').style.display = 'block';
       initAdmin();
@@ -669,6 +671,7 @@
     if (e.key === 'Enter') doLogin();
   });
   function doLogout() {
+    sessionStorage.removeItem('adminAuth');
     document.getElementById('adminApp').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('pwInput').value = '';

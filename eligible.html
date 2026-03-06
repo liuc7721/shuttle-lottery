@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可抽獎名單</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:       #003399;
+      --blue-dark:  #002270;
+      --blue-light: #1a4dcc;
+      --gold:       #D4AF37;
+      --green:      #0a7a3e;
+      --green-bg:   #edfaf3;
+      --green-bdr:  #a0dfc0;
+      --text:       #1a1a2e;
+      --muted:      #5a6070;
+      --bg:         #f0f4ff;
+      --card:       #ffffff;
+      --border:     #d0d9f0;
+      --danger:     #e02020;
+      --success:    #0a7a3e;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ── Top bar ── */
+    .top-bar {
+      background: linear-gradient(90deg, var(--blue-dark), var(--blue));
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,51,153,.3);
+    }
+    .top-bar-title { font-size: 16px; font-weight: 700; color: #fff; flex: 1; min-width: 120px; }
+    .btn-back {
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.28); }
+    .btn-export {
+      background: var(--gold);
+      color: var(--blue-dark);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-export:hover { opacity: .85; }
+
+    /* ── Main ── */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--blue);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .stat-card.won .stat-num       { color: var(--danger); }
+    .stat-card.remaining .stat-num { color: var(--green);  }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      height: 40px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s;
+      background: #f8f9ff;
+    }
+    .search-input:focus { border-color: var(--blue); background: #fff; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .tab-btn {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--blue);
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    }
+
+    /* ── Table card ── */
+    .table-card {
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+      overflow: hidden;
+    }
+    .table-info {
+      padding: 10px 20px;
+      font-size: 13px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+      color: #fff;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    tbody tr:nth-child(odd)  { background: #f8f9ff; }
+    tbody tr:nth-child(even) { background: #fff; }
+    tbody tr:hover           { background: #eef2ff; }
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #eef0f8;
+      vertical-align: middle;
+    }
+
+    /* ── Status badges ── */
+    .badge-won {
+      display: inline-block;
+      background: #fff3f3;
+      color: var(--danger);
+      border: 1px solid #f5c0c0;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-available {
+      display: inline-block;
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-bdr);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+    /* ── Auth error ── */
+    #authError {
+      display: none;
+      max-width: 400px;
+      margin: 120px auto 0;
+      text-align: center;
+      padding: 40px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.1);
+    }
+    #authError .auth-icon { font-size: 48px; margin-bottom: 16px; }
+    #authError h2 { color: var(--danger); margin-bottom: 8px; }
+    #authError p  { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .btn-go-admin {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue-light));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform .3s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show  { transform: translateX(-50%) translateY(0); }
+    #toast.error { background: var(--danger); }
+  </style>
+</head>
+<body>
+
+<!-- ── Auth error ── -->
+<div id="authError">
+  <div class="auth-icon">🔒</div>
+  <h2>未授權</h2>
+  <p>請先從後台管理頁面登入</p>
+  <a href="admin.html" class="btn-go-admin">前往後台登入</a>
+</div>
+
+<!-- ── App ── -->
+<div id="appBody" style="display:none">
+  <div class="top-bar">
+    <a href="admin.html" class="btn-back">← 返回後台</a>
+    <div class="top-bar-title">可抽獎名單</div>
+    <button class="btn-export" onclick="exportCsv()">匯出 CSV</button>
+  </div>
+
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="statTotal">—</div>
+        <div class="stat-label">總人數</div>
+      </div>
+      <div class="stat-card won">
+        <div class="stat-num" id="statWon">—</div>
+        <div class="stat-label">已中獎</div>
+      </div>
+      <div class="stat-card remaining">
+        <div class="stat-num" id="statRemaining">—</div>
+        <div class="stat-label">尚未中獎</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <input type="text" id="searchInput" class="search-input"
+        placeholder="搜尋流水號、工號、姓名、部門…"
+        autocomplete="off" oninput="applyFilter()">
+      <div class="tabs">
+        <button class="tab-btn active" id="tabAll"   onclick="setTab('all')">全部</button>
+        <button class="tab-btn"        id="tabAvail" onclick="setTab('available')">尚未中獎</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-info" id="tableInfo">載入中…</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>流水號</th>
+              <th>工號</th>
+              <th>姓名</th>
+              <th>部門</th>
+              <th>中獎狀態</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── Auth check ──────────────────────────────────
+  if (!sessionStorage.getItem('adminAuth')) {
+    document.getElementById('authError').style.display = 'block';
+  } else {
+    document.getElementById('appBody').style.display = 'block';
+    init();
+  }
+
+  // ── Supabase ─────────────────────────────────────
+  const SUPABASE_URL      = 'https://fdaehvslcoiagwkepauw.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkYWVodnNsY29pYWd3a2VwYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjU5NjUsImV4cCI6MjA4ODM0MTk2NX0.7wVYRVtzqTU6IP8pDQ7WFkNybwD3GMHTrJ6sRErGSNg';
+  const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ── State ────────────────────────────────────────
+  let allEmployees = [];
+  let currentTab   = 'all';
+
+  async function init() {
+    document.getElementById('tableInfo').textContent = '載入中…';
+
+    const [
+      { data: empRows,    error: empErr    },
+      { data: winnerRows, error: winnerErr }
+    ] = await Promise.all([
+      _supabase.from('employees').select('sn,emp_id,name,dept').order('sn', { ascending: true }),
+      _supabase.from('winners').select('sn,emp_id,prize_name,prize_rank').order('prize_rank', { ascending: true })
+    ]);
+
+    if (empErr) {
+      showToast('員工資料讀取失敗：' + empErr.message, 'error');
+      document.getElementById('tableInfo').textContent = '資料讀取失敗';
+      return;
+    }
+
+    // Build winner lookup maps
+    const wonByEmpId = {};
+    const wonBySn    = {};
+    (winnerRows || []).forEach(w => {
+      if (w.emp_id) wonByEmpId[String(w.emp_id).toLowerCase()] = w.prize_name;
+      if (w.sn)     wonBySn[String(w.sn)]                      = w.prize_name;
+    });
+
+    allEmployees = (empRows || []).map(e => {
+      const empKey   = String(e.emp_id || '').toLowerCase();
+      const snKey    = String(e.sn     || '');
+      const wonPrize = wonByEmpId[empKey] || wonBySn[snKey] || null;
+      return { sn: e.sn || '', empId: e.emp_id || '', name: e.name || '', dept: e.dept || '', wonPrize };
+    });
+
+    const wonCount = allEmployees.filter(e => e.wonPrize).length;
+    document.getElementById('statTotal').textContent     = allEmployees.length;
+    document.getElementById('statWon').textContent       = wonCount;
+    document.getElementById('statRemaining').textContent = allEmployees.length - wonCount;
+
+    applyFilter();
+  }
+
+  // ── Filter & render ──────────────────────────────
+  function setTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabAll').classList.toggle('active',   tab === 'all');
+    document.getElementById('tabAvail').classList.toggle('active', tab === 'available');
+    applyFilter();
+  }
+
+  function applyFilter() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    let rows = allEmployees;
+    if (currentTab === 'available') rows = rows.filter(e => !e.wonPrize);
+    if (q) rows = rows.filter(e =>
+      String(e.sn).toLowerCase().includes(q)    ||
+      String(e.empId).toLowerCase().includes(q) ||
+      e.name.toLowerCase().includes(q)          ||
+      e.dept.toLowerCase().includes(q)
+    );
+    document.getElementById('tableInfo').textContent = `顯示 ${rows.length} 筆`;
+    renderTable(rows);
+  }
+
+  function formatEmpId(empId) {
+    return /^\d/.test(String(empId)) ? String(empId).padStart(4, '0') : String(empId);
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById('tableBody');
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div>沒有符合條件的資料</div>
+        </div>
+      </td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(e => {
+      const status = e.wonPrize
+        ? `<span class="badge-won">${escHtml(e.wonPrize)}</span>`
+        : `<span class="badge-available">尚未中獎</span>`;
+      return `<tr>
+        <td>${escHtml(String(e.sn))}</td>
+        <td>${escHtml(formatEmpId(e.empId))}</td>
+        <td>${escHtml(e.name)}</td>
+        <td>${escHtml(e.dept)}</td>
+        <td>${status}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Export CSV ───────────────────────────────────
+  function exportCsv() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    let rows = allEmployees;
+    if (currentTab === 'available') rows = rows.filter(e => !e.wonPrize);
+    if (q) rows = rows.filter(e =>
+      String(e.sn).toLowerCase().includes(q)    ||
+      String(e.empId).toLowerCase().includes(q) ||
+      e.name.toLowerCase().includes(q)          ||
+      e.dept.toLowerCase().includes(q)
+    );
+
+    const lines = ['流水號,工號,姓名,部門,中獎狀態'];
+    rows.forEach(e => {
+      lines.push([
+        e.sn, formatEmpId(e.empId), e.name, e.dept, e.wonPrize || '尚未中獎'
+      ].map(v => String(v).includes(',') ? `"${v}"` : v).join(','));
+    });
+
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const tab  = currentTab === 'available' ? '尚未中獎' : '全部';
+    Object.assign(document.createElement('a'), {
+      href: url, download: `可抽獎名單_${tab}.csv`
+    }).click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Toast ─────────────────────────────────────────
+  let _toastTimer;
+  function showToast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type ? `show ${type}` : 'show';
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
