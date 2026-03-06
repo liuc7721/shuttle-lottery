@@ -309,6 +309,15 @@
       font-family: inherit;
       white-space: nowrap;
     }
+    .prize-locked-label {
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
     .prize-body { padding: 12px 16px; }
     .winner-row-edit {
       display: flex;
@@ -712,12 +721,13 @@
           winnerMap.get(r.prize_rank).push({ sn: r.sn || '', empId: r.emp_id || '', name: r.name, dept: r.dept || '' });
         });
         data.prizes = prizeRows.map(p => ({
-          id:      p.prize_rank,
-          rank:    p.prize_rank,
-          name:    p.prize_name,
-          value:   p.prize_value || 0,
-          count:   p.prize_count || 0,
-          winners: winnerMap.get(p.prize_rank) || []
+          id:        p.prize_rank,
+          rank:      p.prize_rank,
+          name:      p.prize_name,
+          value:     p.prize_value || 0,
+          count:     p.prize_count || 0,
+          protected: p.prize_rank >= 1 && p.prize_rank <= 7,
+          winners:   winnerMap.get(p.prize_rank) || []
         }));
       }
       // prizeRows empty → data.prizes stays [] (empty panel)
@@ -748,7 +758,8 @@
         name:  row.querySelector('.we-name').value.trim(),
         dept:  row.querySelector('.we-dept').value.trim()
       })).filter(w => w.sn || w.empId || w.name);
-      return { id: ci + 1, rank: ci + 1, name, value, count, winners };
+      const isProtected = card.dataset.protected === 'true';
+      return { id: ci + 1, rank: ci + 1, name, value, count, protected: isProtected, winners };
     });
   }
 
@@ -764,16 +775,20 @@
   function buildPrizeCard(prize, pi) {
     const card = document.createElement('div');
     card.className = 'prize-card';
-    card.dataset.pi = pi;
+    card.dataset.pi        = pi;
+    card.dataset.protected = prize.protected ? 'true' : '';
     const winnersHtml  = (prize.winners || []).map((w, wi) => buildWinnerRowHtml(w, wi)).join('');
     const filledCount  = (prize.winners || []).length;
+    const actionBtn    = prize.protected
+      ? `<span class="prize-locked-label">系統獎項</span>`
+      : `<button class="btn-del-prize" onclick="deletePrize(this)">刪除獎項</button>`;
     card.innerHTML = `
       <div class="prize-card-header">
         <input class="ph-name-input"  type="text"   value="${escHtml(prize.name)}"        placeholder="獎項名稱">
         <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0">
         <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0">
         <span class="winner-slot-badge">${filledCount}/${prize.count ?? 0} 人</span>
-        <button class="btn-del-prize" onclick="deletePrize(this)">刪除獎項</button>
+        ${actionBtn}
       </div>
       <div class="prize-body">
         <div class="winner-headers">
@@ -803,7 +818,7 @@
   // ── Prize actions ─────────────────────────────
   function addPrize() {
     syncAll();
-    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', value: 0, count: 1, winners: [] });
+    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', value: 0, count: 1, protected: false, winners: [] });
     renderPrizes();
     const cards = document.querySelectorAll('.prize-card');
     cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -937,21 +952,19 @@
       return;
     }
 
-    // 略過第一行標題
-    const dataLines = lines.slice(1);
-    const prizeMap  = new Map(); // rank → { name, winners[] }
+    // 偵測格式：從標題行判斷是否含 sn 欄
+    const header      = lines[0].toLowerCase().replace(/\s/g, '');
+    const isNewFormat = header.startsWith('sn,');
+    const dataLines   = lines.slice(1);
+    const prizeMap    = new Map(); // rank → { name, winners[] }
 
     for (const line of dataLines) {
       const cols = parseCsvLine(line);
-      if (cols.length < 5) continue;
-      // Support both old (prize_rank,prize_name,emp_id,name,dept)
-      // and new (sn,prize_rank,prize_name,emp_id,name,dept) formats
+      if (cols.length < (isNewFormat ? 6 : 5)) continue;
       let sn, rank, prize_name, emp_id, name, dept;
-      if (cols.length >= 6 && isNaN(parseInt(cols[0])) === false && parseInt(cols[0]) > 1000) {
-        // New format: sn first
+      if (isNewFormat) {
         [sn, rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
       } else {
-        // Old format: no sn
         [rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
         sn = '';
       }
