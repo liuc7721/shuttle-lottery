@@ -571,7 +571,7 @@
       <div class="modal-note">
         CSV 欄位格式（第一行為標題列，之後每行一筆得獎者）：
       </div>
-      <div class="csv-format-box">prize_rank,prize_name,prize_icon,emp_id,name,dept<br>1,頭獎,🏆,S0012,陳大文,研發部<br>2,二獎,🥈,S0034,林小芳,業務部</div>
+      <div class="csv-format-box">prize_rank,prize_name,emp_id,name,dept<br>1,頭獎,S0012,陳大文,研發部<br>2,二獎,S0034,林小芳,業務部</div>
       <div class="modal-note" style="margin-bottom: 10px;">
         匯入後將取代目前所有獎項與得獎者資料，請確認後再儲存到雲端。
       </div>
@@ -676,7 +676,6 @@
     syncMeta();
     const cards = document.querySelectorAll('.prize-card');
     data.prizes = Array.from(cards).map((card, ci) => {
-      const icon = card.querySelector('.ph-icon-input').value.trim() || '🎁';
       const name = card.querySelector('.ph-name-input').value.trim() || ('獎項 ' + (ci + 1));
       const rows = card.querySelectorAll('.winner-row-edit');
       const winners = Array.from(rows).map(row => ({
@@ -684,7 +683,7 @@
         name:  row.querySelector('.we-name').value.trim(),
         dept:  row.querySelector('.we-dept').value.trim()
       })).filter(w => w.empId || w.name);
-      return { id: ci + 1, rank: ci + 1, name, icon, winners };
+      return { id: ci + 1, rank: ci + 1, name, winners };
     });
   }
 
@@ -705,7 +704,6 @@
       buildWinnerRowHtml(w, wi)).join('');
     card.innerHTML = `
       <div class="prize-card-header">
-        <input class="ph-icon-input" type="text" value="${escHtml(prize.icon || '🎁')}" maxlength="4" title="獎項圖示">
         <input class="ph-name-input" type="text" value="${escHtml(prize.name)}" placeholder="獎項名稱">
         <button class="btn-del-prize" onclick="deletePrize(this)">刪除獎項</button>
       </div>
@@ -735,7 +733,7 @@
   // ── Prize actions ─────────────────────────────
   function addPrize() {
     syncAll();
-    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', icon: '🎁', winners: [] });
+    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', winners: [] });
     renderPrizes();
     const cards = document.querySelectorAll('.prize-card');
     cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -840,16 +838,16 @@
 
     // 略過第一行標題
     const dataLines = lines.slice(1);
-    const prizeMap  = new Map(); // rank → { name, icon, winners[] }
+    const prizeMap  = new Map(); // rank → { name, winners[] }
 
     for (const line of dataLines) {
       // 支援含逗號的欄位（用雙引號包住）
       const cols = parseCsvLine(line);
-      if (cols.length < 6) continue;
-      const [rank, prize_name, prize_icon, emp_id, name, dept] = cols.map(c => c.trim());
+      if (cols.length < 5) continue;
+      const [rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
       const r = parseInt(rank);
       if (!prizeMap.has(r)) {
-        prizeMap.set(r, { rank: r, name: prize_name, icon: prize_icon || '🎁', winners: [] });
+        prizeMap.set(r, { rank: r, name: prize_name, winners: [] });
       }
       if (emp_id || name) {
         prizeMap.get(r).winners.push({ empId: emp_id, name, dept: dept || '' });
@@ -886,7 +884,6 @@
       id:      i + 1,
       rank:    p.rank,
       name:    p.name,
-      icon:    p.icon,
       winners: p.winners
     }));
     renderPrizes();
