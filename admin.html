@@ -342,6 +342,8 @@
       background: #f8f9ff;
     }
     .we-input:focus { border-color: var(--blue); background: #fff; }
+    .we-input[readonly] { background: #f0f2f8; color: var(--muted); cursor: not-allowed; border-style: dashed; }
+    .we-input[readonly]:focus { border-color: var(--border); background: #f0f2f8; box-shadow: none; }
     .we-sn    { width: 90px; flex-shrink: 0; }
     .we-empid { width: 80px; flex-shrink: 0; }
     .we-name  { flex: 1;   min-width: 0; }
@@ -1142,25 +1144,62 @@
   });
 
   // Autocomplete — SN fills all fields; emp_id fills name+dept+sn
+  // After autocomplete, filled fields are locked (readonly) to prevent accidental edits.
+  // Clearing the SN or emp_id field unlocks the dependent fields.
+  function lockFields(row, selectors) {
+    selectors.forEach(sel => {
+      const el = row.querySelector(sel);
+      if (el) el.setAttribute('readonly', '');
+    });
+  }
+  function unlockFields(row, selectors) {
+    selectors.forEach(sel => {
+      const el = row.querySelector(sel);
+      if (el) el.removeAttribute('readonly');
+    });
+  }
+
   document.getElementById('prizeList').addEventListener('input', function(e) {
     const row = e.target.closest('.winner-row-edit');
     if (!row) return;
 
-    if (e.target.classList.contains('we-sn') && e.target.value.trim()) {
-      const emp = _snMap[e.target.value.trim()];
-      if (!emp) return;
-      row.querySelector('.we-empid').value = emp.emp_id || '';
-      row.querySelector('.we-name').value  = emp.name;
-      row.querySelector('.we-dept').value  = emp.dept || '';
+    if (e.target.classList.contains('we-sn')) {
+      const val = e.target.value.trim();
+      if (!val) {
+        // SN cleared → unlock dependent fields and clear them
+        unlockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+        row.querySelector('.we-empid').value = '';
+        row.querySelector('.we-name').value  = '';
+        row.querySelector('.we-dept').value  = '';
+        return;
+      }
+      const emp = _snMap[val];
+      if (emp) {
+        row.querySelector('.we-empid').value = emp.emp_id || '';
+        row.querySelector('.we-name').value  = emp.name;
+        row.querySelector('.we-dept').value  = emp.dept || '';
+        lockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+      } else {
+        unlockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+      }
       return;
     }
 
-    if (e.target.classList.contains('we-empid') && e.target.value.trim()) {
-      const emp = _employeeMap[e.target.value.trim().toUpperCase()];
-      if (!emp) return;
-      row.querySelector('.we-name').value  = emp.name;
-      row.querySelector('.we-dept').value  = emp.dept || '';
-      if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
+    if (e.target.classList.contains('we-empid')) {
+      const val = e.target.value.trim();
+      if (!val) {
+        unlockFields(row, ['.we-sn', '.we-name', '.we-dept']);
+        return;
+      }
+      const emp = _employeeMap[val.toUpperCase()];
+      if (emp) {
+        row.querySelector('.we-name').value  = emp.name;
+        row.querySelector('.we-dept').value  = emp.dept || '';
+        if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
+        lockFields(row, ['.we-name', '.we-dept', ...(emp.sn ? ['.we-sn'] : [])]);
+      } else {
+        unlockFields(row, ['.we-sn', '.we-name', '.we-dept']);
+      }
     }
   });
 
