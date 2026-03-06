@@ -523,6 +523,16 @@
       cursor: pointer;
     }
     .btn-import:disabled { opacity: .5; cursor: default; }
+
+    /* ── Auto-save status ── */
+    #autoSaveStatus {
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      min-width: 64px;
+      transition: opacity .5s;
+      white-space: nowrap;
+    }
+    #autoSaveStatus.fade { opacity: 0; }
   </style>
 </head>
 <body>
@@ -550,6 +560,7 @@
   <div class="top-bar">
     <div class="top-bar-title">尾牙抽獎 · 後台管理</div>
     <button class="btn-save" id="btnSave" onclick="saveToSupabase()">儲存到雲端</button>
+    <span id="autoSaveStatus"></span>
     <button class="btn-csv" onclick="openCsvModal()">匯入 CSV</button>
     <button class="btn-export" onclick="exportAsCsv()">匯出 CSV</button>
     <button class="btn-csv" onclick="window.location.href='eligible.html'">可抽獎名單</button>
@@ -641,6 +652,7 @@
   let data;
   let _employeeMap = {};
   let _snMap = {};
+  let _autoSaveTimer = null;
 
   // ── Auto-login if session still active ───────
   if (sessionStorage.getItem('adminAuth')) {
@@ -867,6 +879,7 @@
     const prizeCard = btn.closest('.prize-card');
     btn.closest('.winner-row-edit').remove();
     updateSlotBadge(prizeCard);
+    scheduleAutoSave();
   }
 
   function updateSlotBadge(prizeCard) {
@@ -936,6 +949,70 @@
     btn.disabled = false;
     btn.textContent = '儲存到雲端';
     showToast('已成功儲存到 Supabase！', 'success');
+  }
+
+  // ━━━━━━━━━━━━━━━━━━ Auto-Save ━━━━━━━━━━━━━━━━━━
+  function scheduleAutoSave() {
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => autoSave(), 800);
+  }
+
+  let _autoSaveFadeTimer;
+  async function autoSave() {
+    if (!_supabase) return;
+    syncAll();
+
+    const statusEl = document.getElementById('autoSaveStatus');
+    statusEl.className = '';
+    statusEl.textContent = '同步中…';
+
+    const rows = [];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        rows.push({
+          prize_rank: prize.rank,
+          prize_name: prize.name,
+          sn:         w.sn    || null,
+          emp_id:     w.empId || null,
+          name:       w.name,
+          dept:       w.dept
+        });
+      });
+    });
+
+    const { error: delErr } = await _supabase.from('winners').delete().gte('id', 0);
+    if (delErr) {
+      statusEl.textContent = '⚠ 同步失敗';
+      showToast('自動同步失敗：' + delErr.message, 'error');
+      return;
+    }
+
+    if (rows.length > 0) {
+      const { error: insErr } = await _supabase.from('winners').insert(rows);
+      if (insErr) {
+        statusEl.textContent = '⚠ 同步失敗';
+        showToast('自動同步失敗：' + insErr.message, 'error');
+        return;
+      }
+    }
+
+    const prizeRows = data.prizes.map(p => ({
+      prize_rank:  p.rank,
+      prize_name:  p.name,
+      prize_value: p.value || 0,
+      prize_count: p.count || 0
+    }));
+    const { error: delPrizeErr } = await _supabase.from('prizes').delete().gte('prize_rank', 0);
+    if (!delPrizeErr && prizeRows.length > 0) {
+      await _supabase.from('prizes').insert(prizeRows);
+    }
+
+    statusEl.textContent = '✓ 已同步';
+    clearTimeout(_autoSaveFadeTimer);
+    _autoSaveFadeTimer = setTimeout(() => {
+      statusEl.classList.add('fade');
+      setTimeout(() => { statusEl.textContent = ''; statusEl.className = ''; }, 500);
+    }, 2000);
   }
 
   // ━━━━━━━━━━━━━━━━━━ CSV Import ━━━━━━━━━━━━━━━━━━
@@ -1085,6 +1162,16 @@
       row.querySelector('.we-dept').value  = emp.dept || '';
       if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
     }
+  });
+
+  // Auto-save on winner row blur
+  document.getElementById('prizeList').addEventListener('focusout', function(e) {
+    const row = e.target.closest('.winner-row-edit');
+    if (!row) return;
+    const hasSn   = row.querySelector('.we-sn').value.trim();
+    const hasName = row.querySelector('.we-name').value.trim();
+    if (!hasSn && !hasName) return; // empty row, skip
+    scheduleAutoSave();
   });
 
   // ── Toast ────────────────────────────────────
