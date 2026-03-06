@@ -28,7 +28,8 @@ CREATE TABLE employees (
 );
 
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public read employees" ON employees FOR SELECT USING (true);
+CREATE POLICY "public read employees"  ON employees FOR SELECT USING (true);
+CREATE POLICY "allow write employees"  ON employees FOR ALL    USING (true) WITH CHECK (true);
 
 
 -- ── Step 4: 插入 7 個獎項（來自摸彩獎項清冊）────────────────────────
