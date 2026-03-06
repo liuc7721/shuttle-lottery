@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>後台管理 - 五崧科技尾牙</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:       #003399;
+      --blue-dark:  #002270;
+      --blue-light: #1a4dcc;
+      --gold:       #D4AF37;
+      --text:       #1a1a2e;
+      --muted:      #5a6070;
+      --bg:         #f0f4ff;
+      --card:       #ffffff;
+      --border:     #d0d9f0;
+      --danger:     #e02020;
+      --danger-bg:  #fff0f0;
+      --success:    #0a7a3e;
+      --success-bg: #edfaf3;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━ Login screen ━━━━━━━━━━━━━━━━━━ */
+    #loginScreen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,51,153,.18);
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .login-icon { font-size: 48px; margin-bottom: 12px; }
+    .login-title { font-size: 20px; font-weight: 900; color: var(--blue); margin-bottom: 4px; }
+    .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .login-input {
+      width: 100%;
+      height: 50px;
+      padding: 0 16px;
+      font-size: 16px;
+      font-family: inherit;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      text-align: center;
+      letter-spacing: 3px;
+      margin-bottom: 14px;
+      transition: border-color .2s;
+    }
+    .login-input:focus { border-color: var(--blue); }
+    .btn-login {
+      width: 100%;
+      height: 50px;
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue-light));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-login:hover { opacity: .88; }
+    .login-error {
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 13px;
+      min-height: 18px;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━ Admin app ━━━━━━━━━━━━━━━━━━ */
+    #adminApp { display: none; }
+
+    .top-bar {
+      background: linear-gradient(90deg, var(--blue-dark), var(--blue));
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,51,153,.3);
+    }
+    .top-bar-title { font-size: 16px; font-weight: 700; color: #fff; flex: 1; }
+    .btn-export {
+      background: var(--gold);
+      color: var(--blue-dark);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-export:hover { opacity: .85; }
+    .btn-logout {
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* ── Main wrapper ── */
+    .admin-main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    /* ── Event info card ── */
+    .info-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-row label { font-size: 13px; color: var(--muted); width: 64px; flex-shrink: 0; }
+    .field {
+      flex: 1;
+      height: 38px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field:focus { border-color: var(--blue); }
+
+    /* ── Prize cards ── */
+    .prize-card {
+      background: var(--card);
+      border-radius: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+      overflow: hidden;
+    }
+    .prize-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: #f5f7ff;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .prize-card-header:hover { background: #ecf0ff; }
+    .ph-icon-input {
+      width: 44px;
+      height: 34px;
+      text-align: center;
+      font-size: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      font-family: inherit;
+    }
+    .ph-name-input {
+      flex: 1;
+      height: 34px;
+      padding: 0 10px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      color: var(--blue);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .ph-name-input:focus, .ph-icon-input:focus { outline: none; border-color: var(--blue); }
+    .btn-del-prize {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid #f5c0c0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .prize-body { padding: 12px 16px; }
+    .winner-row-edit {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .we-input {
+      height: 36px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      outline: none;
+      transition: border-color .2s;
+      background: #f8f9ff;
+    }
+    .we-input:focus { border-color: var(--blue); background: #fff; }
+    .we-empid { width: 90px; flex-shrink: 0; }
+    .we-name  { flex: 1.2; min-width: 0; }
+    .we-dept  { flex: 1;   min-width: 0; }
+    .btn-del-winner {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      flex-shrink: 0;
+      opacity: .7;
+      transition: opacity .15s;
+    }
+    .btn-del-winner:hover { opacity: 1; }
+    .btn-add-winner {
+      width: 100%;
+      height: 34px;
+      background: none;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 4px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-add-winner:hover { border-color: var(--blue); color: var(--blue); }
+    .winner-headers {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+      padding: 0 4px;
+    }
+    .wh { font-size: 11px; color: var(--muted); font-weight: 700; }
+    .wh.we-empid { width: 90px; flex-shrink: 0; }
+    .wh.we-name  { flex: 1.2; min-width: 0; }
+    .wh.we-dept  { flex: 1;   min-width: 0; }
+    .wh-del      { width: 34px; flex-shrink: 0; }
+
+    /* ── Add prize ── */
+    .btn-add-prize {
+      width: 100%;
+      height: 48px;
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      font-size: 15px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 24px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-add-prize:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ━━━━━━━━━━━━━━━━━━ Export modal ━━━━━━━━━━━━━━━━━━ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .modal-note { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+    .code-area {
+      width: 100%;
+      height: 220px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      resize: vertical;
+      background: #f8f9ff;
+      outline: none;
+    }
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-download {
+      flex: 1;
+      height: 42px;
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue-light));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-copy {
+      flex: 1;
+      height: 42px;
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1.5px solid #a0dfc0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login screen ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">後台管理</div>
+    <div class="login-sub">五崧科技尾牙 · 抽獎系統</div>
+    <input
+      type="password"
+      class="login-input"
+      id="pwInput"
+      placeholder="請輸入密碼"
+      autocomplete="current-password"
+    >
+    <button class="btn-login" onclick="doLogin()">進入管理介面</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── Admin app ── -->
+<div id="adminApp">
+  <div class="top-bar">
+    <div class="top-bar-title">尾牙抽獎 · 後台管理</div>
+    <button class="btn-export" onclick="openExport()">匯出 winners.js</button>
+    <button class="btn-logout" onclick="doLogout()">登出</button>
+  </div>
+
+  <div class="admin-main">
+    <!-- Event info -->
+    <div class="info-card">
+      <div class="section-label">活動資訊</div>
+      <div class="info-row">
+        <label>年度</label>
+        <input class="field" id="fYear" type="number" placeholder="2026">
+      </div>
+      <div class="info-row">
+        <label>活動名稱</label>
+        <input class="field" id="fEvent" type="text" placeholder="五崧科技 尾牙晚宴">
+      </div>
+    </div>
+
+    <!-- Prize list -->
+    <div id="prizeList"></div>
+
+    <button class="btn-add-prize" onclick="addPrize()">＋ 新增獎項</button>
+  </div>
+</div>
+
+<!-- ── Export modal ── -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">匯出 winners.js</div>
+      <button class="modal-close" onclick="closeExport()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-note">
+        請下載此檔案，並將它覆蓋取代專案中的
+        <code>data/winners.js</code>，重新整理網頁即可生效。
+      </div>
+      <textarea class="code-area" id="exportTextarea" readonly></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-download" onclick="downloadFile()">下載 winners.js</button>
+      <button class="btn-copy" id="btnCopy" onclick="copyCode()">複製內容</button>
+    </div>
+  </div>
+</div>
+
+<script src="data/winners.js"></script>
+<script>
+  // ─────────────────────────────────────────────
+  // CONFIG — change the password here
+  // ─────────────────────────────────────────────
+  const ADMIN_PASSWORD = 'shuttle2026';
+
+  // ── Auth ─────────────────────────────────────
+  function doLogin() {
+    const pw = document.getElementById('pwInput').value;
+    if (pw === ADMIN_PASSWORD) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminApp').style.display = 'block';
+      initAdmin();
+    } else {
+      document.getElementById('loginError').textContent = '密碼錯誤，請再試一次';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  function doLogout() {
+    document.getElementById('adminApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('loginError').textContent = '';
+  }
+
+  // ── State ────────────────────────────────────
+  let data; // working copy
+
+  function initAdmin() {
+    data = JSON.parse(JSON.stringify(LOTTERY_DATA)); // deep clone
+    document.getElementById('fYear').value  = data.year;
+    document.getElementById('fEvent').value = data.event;
+    renderPrizes();
+  }
+
+  // ── Sync fields → data ───────────────────────
+  function syncMeta() {
+    data.year  = parseInt(document.getElementById('fYear').value)  || data.year;
+    data.event = document.getElementById('fEvent').value.trim()    || data.event;
+  }
+
+  function syncAll() {
+    syncMeta();
+    const cards = document.querySelectorAll('.prize-card');
+    data.prizes = Array.from(cards).map((card, ci) => {
+      const icon = card.querySelector('.ph-icon-input').value.trim() || '🎁';
+      const name = card.querySelector('.ph-name-input').value.trim() || ('獎項 ' + (ci + 1));
+      const rows = card.querySelectorAll('.winner-row-edit');
+      const winners = Array.from(rows).map(row => ({
+        empId: row.querySelector('.we-empid').value.trim(),
+        name:  row.querySelector('.we-name').value.trim(),
+        dept:  row.querySelector('.we-dept').value.trim()
+      })).filter(w => w.empId || w.name);
+      return { id: ci + 1, rank: ci + 1, name, icon, winners };
+    });
+  }
+
+  // ── Render prizes ─────────────────────────────
+  function renderPrizes() {
+    const list = document.getElementById('prizeList');
+    list.innerHTML = '';
+    (data.prizes || []).forEach((prize, pi) => {
+      list.appendChild(buildPrizeCard(prize, pi));
+    });
+  }
+
+  function buildPrizeCard(prize, pi) {
+    const card = document.createElement('div');
+    card.className = 'prize-card';
+    card.dataset.pi = pi;
+
+    const winnersHtml = (prize.winners || []).map((w, wi) =>
+      buildWinnerRowHtml(w, wi)).join('');
+
+    card.innerHTML = `
+      <div class="prize-card-header">
+        <input class="ph-icon-input" type="text" value="${escHtml(prize.icon || '🎁')}" maxlength="4" title="獎項圖示">
+        <input class="ph-name-input" type="text" value="${escHtml(prize.name)}" placeholder="獎項名稱">
+        <button class="btn-del-prize" onclick="deletePrize(this)">刪除獎項</button>
+      </div>
+      <div class="prize-body">
+        <div class="winner-headers">
+          <span class="wh we-empid">員工編號</span>
+          <span class="wh we-name">姓名</span>
+          <span class="wh we-dept">部門</span>
+          <span class="wh wh-del"></span>
+        </div>
+        <div class="winners-list">${winnersHtml}</div>
+        <button class="btn-add-winner" onclick="addWinner(this)">＋ 新增得獎者</button>
+      </div>`;
+    return card;
+  }
+
+  function buildWinnerRowHtml(w, wi) {
+    return `
+      <div class="winner-row-edit">
+        <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="S0001">
+        <input class="we-input we-name"  type="text" value="${escHtml(w.name  || '')}" placeholder="姓名">
+        <input class="we-input we-dept"  type="text" value="${escHtml(w.dept  || '')}" placeholder="部門">
+        <button class="btn-del-winner" onclick="deleteWinner(this)" title="刪除">×</button>
+      </div>`;
+  }
+
+  // ── Prize actions ─────────────────────────────
+  function addPrize() {
+    syncAll();
+    const newPrize = { id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', icon: '🎁', winners: [] };
+    data.prizes.push(newPrize);
+    renderPrizes();
+    // scroll to new card
+    const cards = document.querySelectorAll('.prize-card');
+    cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function deletePrize(btn) {
+    const card = btn.closest('.prize-card');
+    if (!confirm('確定要刪除這個獎項嗎？')) return;
+    syncAll();
+    const pi = Array.from(document.querySelectorAll('.prize-card')).indexOf(card);
+    data.prizes.splice(pi, 1);
+    renderPrizes();
+  }
+
+  function addWinner(btn) {
+    const wList = btn.closest('.prize-body').querySelector('.winners-list');
+    wList.insertAdjacentHTML('beforeend', buildWinnerRowHtml({}, 0));
+    wList.lastElementChild?.querySelector('input')?.focus();
+  }
+
+  function deleteWinner(btn) {
+    btn.closest('.winner-row-edit').remove();
+  }
+
+  // ── Export ────────────────────────────────────
+  function buildFileContent() {
+    syncAll();
+    syncMeta();
+    const d = {
+      year:   parseInt(document.getElementById('fYear').value)  || data.year,
+      event:  document.getElementById('fEvent').value.trim()    || data.event,
+      prizes: data.prizes
+    };
+    const json = JSON.stringify(d, null, 2);
+    return `// 五崧科技 尾牙抽獎資料\n// 修改此檔案以更新得獎名單，存檔後重新整理網頁即可生效\nconst LOTTERY_DATA = ${json};\n`;
+  }
+
+  function openExport() {
+    document.getElementById('exportTextarea').value = buildFileContent();
+    document.getElementById('exportModal').classList.add('open');
+    document.getElementById('btnCopy').textContent = '複製內容';
+  }
+  function closeExport() {
+    document.getElementById('exportModal').classList.remove('open');
+  }
+
+  function downloadFile() {
+    const content = document.getElementById('exportTextarea').value;
+    const blob = new Blob([content], { type: 'text/javascript' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: 'winners.js' });
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyCode() {
+    const ta = document.getElementById('exportTextarea');
+    ta.select();
+    document.execCommand('copy');
+    const btn = document.getElementById('btnCopy');
+    btn.textContent = '已複製 ✓';
+    setTimeout(() => { btn.textContent = '複製內容'; }, 2000);
+  }
+
+  // click outside modal to close
+  document.getElementById('exportModal').addEventListener('click', function(e) {
+    if (e.target === this) closeExport();
+  });
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>

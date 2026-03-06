@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <title>中獎查詢</title>
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport" />
+    <meta name="description" content="中獎查詢" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg1: rgb(180 205 255);
+            --bg2: rgb(220 232 255);
+            --primary: rgb(0 51 153);
+            --primary-dark: rgb(0 35 110);
+            --primary-darker: rgb(0 22 75);
+            --text: rgb(0 20 60);
+            --muted: rgb(0 51 153 / 0.70);
+            --card: rgb(255 255 255);
+            --card-border: rgb(0 51 153 / 0.18);
+            --shadow: 0 10px 40px rgb(0 35 110 / 0.16);
+            --soft: rgb(235 241 255);
+            --soft-2: rgb(215 228 255);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }
+
+            .header-card h1 {
+                color: var(--text);
+                font-size: 28px;
+                font-weight: 700;
+                margin-bottom: 0;
+            }
+
+                .header-card h1 i {
+                    color: var(--primary);
+                }
+
+        .search-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--card-border);
+        }
+
+        .search-tips {
+            background: linear-gradient(135deg, rgb(200 215 255) 0%, rgb(225 235 255) 100%);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+            .search-tips p {
+                margin: 0;
+                color: var(--text);
+                font-size: 14px;
+                line-height: 1.8;
+            }
+
+            .search-tips i {
+                color: var(--primary);
+                margin-right: 8px;
+            }
+
+            .search-tips strong {
+                color: var(--primary-dark);
+            }
+
+        .search-box {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 0;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgb(0 51 153 / 0.16);
+        }
+
+            .search-box input {
+                flex: 1;
+                min-width: 0;
+                padding: 16px 20px;
+                border: 2px solid var(--primary);
+                border-right: none;
+                border-radius: 12px 0 0 12px;
+                font-size: 16px;
+                outline: none;
+                background: rgb(235 240 255);
+                color: var(--text);
+                transition: all 0.3s ease;
+            }
+
+                .search-box input:focus {
+                    border-color: var(--primary-dark);
+                    background: #ffffff;
+                    box-shadow: inset 0 0 0 1px var(--primary-dark);
+                }
+
+                .search-box input::placeholder {
+                    color: rgb(0 51 153 / 0.45);
+                }
+
+        .btn-search {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #ffffff;
+            border: 2px solid var(--primary);
+            padding: 16px 28px;
+            border-radius: 0 12px 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+            .btn-search:hover {
+                background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
+                border-color: var(--primary-dark);
+            }
+
+        .btn-refresh {
+            background: transparent;
+            color: var(--primary-dark);
+            border: 2px solid var(--primary);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px auto 0;
+            font-family: inherit;
+        }
+
+            .btn-refresh:hover {
+                transform: translateY(-2px);
+                background: var(--primary);
+                color: #ffffff;
+            }
+
+        .results-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--card-border);
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgb(0 51 153 / 0.15);
+        }
+
+            .results-header h2 {
+                color: var(--text);
+                font-size: 20px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin: 0;
+            }
+
+                .results-header h2 i {
+                    color: var(--primary);
+                }
+
+        .results-count {
+            background: var(--primary);
+            color: #ffffff;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .winner-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+            .winner-table thead th {
+                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                color: #ffffff;
+                padding: 15px 20px;
+                font-weight: 600;
+                font-size: 15px;
+                text-align: left;
+            }
+
+                .winner-table thead th:first-child {
+                    border-radius: 12px 0 0 0;
+                }
+
+                .winner-table thead th:last-child {
+                    border-radius: 0 12px 0 0;
+                }
+
+            .winner-table tbody tr {
+                transition: all 0.3s ease;
+            }
+
+                .winner-table tbody tr:nth-child(odd) {
+                    background: var(--soft);
+                }
+
+                .winner-table tbody tr:nth-child(even) {
+                    background: #ffffff;
+                }
+
+                .winner-table tbody tr:hover {
+                    background: var(--soft-2);
+                }
+
+            .winner-table tbody td {
+                padding: 15px 20px;
+                border-bottom: 1px solid rgb(0 51 153 / 0.12);
+                vertical-align: middle;
+                color: var(--text);
+            }
+
+        .prize-name {
+            font-weight: 700;
+            color: var(--primary-dark);
+            font-size: 16px;
+            background: rgb(0 51 153 / 0.10);
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .winner-details .staff-id {
+            color: var(--primary-dark);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .winner-details .name {
+            color: var(--text);
+            font-weight: 700;
+            font-size: 17px;
+            margin: 4px 0;
+        }
+
+        .winner-details .company {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .winner-details i {
+            color: var(--primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--muted);
+        }
+
+            .empty-state i {
+                font-size: 60px;
+                color: rgb(0 51 153 / 0.22);
+                margin-bottom: 20px;
+                display: block;
+            }
+
+            .empty-state p {
+                font-size: 16px;
+            }
+
+        @media (max-width: 576px) {
+            body {
+                padding: 15px;
+            }
+
+            .header-card {
+                padding: 20px;
+            }
+
+                .header-card h1 {
+                    font-size: 20px;
+                }
+
+            .search-box {
+                flex-direction: row;
+            }
+
+                .search-box input {
+                    padding: 14px 12px;
+                    font-size: 14px;
+                }
+
+            .btn-search {
+                padding: 14px 16px;
+                font-size: 14px;
+            }
+
+                .btn-search span {
+                    display: none;
+                }
+
+            .winner-table thead th,
+            .winner-table tbody td {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header-card">
+            <h1><i class="fas fa-trophy"></i> 中獎查詢 Lucky Draw Winner List</h1>
+        </div>
+
+        <div class="search-card">
+            <div class="search-tips">
+                <p>
+                    <i class="fas fa-lightbulb"></i><strong>查詢提示：</strong><br>
+                    • 按員工編號查詢：請輸入員工編號，如：<strong>S0012</strong><br>
+                    • 按姓名查詢：請輸入姓名，如：<strong>陳大文</strong><br>
+                    • 按獎項查詢：請輸入獎項名稱，如：<strong>頭獎</strong>
+                </p>
+            </div>
+
+            <div class="search-box">
+                <input id="searchInput" type="text" placeholder="請輸入員工編號、姓名或獎項名稱..."
+                    autocomplete="off" autocorrect="off" spellcheck="false">
+                <button class="btn-search" onclick="doSearch()">
+                    <i class="fas fa-search"></i>
+                    <span>立即查詢</span>
+                </button>
+            </div>
+
+            <button class="btn-refresh" onclick="doRefresh()">
+                <i class="fas fa-sync-alt"></i>
+                <span>重新整理</span>
+            </button>
+        </div>
+
+        <div class="results-card">
+            <div class="results-header">
+                <h2><i class="fas fa-gift"></i> 得獎名單</h2>
+                <span class="results-count" id="resultCount"></span>
+            </div>
+
+            <div id="tableArea"></div>
+        </div>
+    </div>
+
+    <script src="data/winners.js"></script>
+    <script>
+        // ── Flatten ──────────────────────────────────────────────────
+        let allRows = [];
+        LOTTERY_DATA.prizes.forEach(prize => {
+            prize.winners.forEach(w => {
+                allRows.push({
+                    prizeIcon: prize.icon,
+                    prizeName: prize.name,
+                    prizeRank: prize.rank,
+                    empId:     w.empId,
+                    name:      w.name,
+                    dept:      w.dept
+                });
+            });
+        });
+        allRows.sort((a, b) => a.prizeRank - b.prizeRank);
+
+        // ── Init ─────────────────────────────────────────────────────
+        renderTable(allRows);
+
+        document.getElementById('searchInput').addEventListener('input', doSearch);
+        document.getElementById('searchInput').addEventListener('keyup', function (e) {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        // ── Actions ──────────────────────────────────────────────────
+        function doSearch() {
+            const q = document.getElementById('searchInput').value.trim();
+            if (!q) { renderTable(allRows); return; }
+            const qu = q.toUpperCase();
+            const filtered = allRows.filter(r =>
+                r.empId.toUpperCase().indexOf(qu) > -1 ||
+                r.name.toUpperCase().indexOf(qu) > -1 ||
+                r.prizeName.toUpperCase().indexOf(qu) > -1 ||
+                r.dept.toUpperCase().indexOf(qu) > -1
+            );
+            renderTable(filtered);
+        }
+
+        function doRefresh() {
+            document.getElementById('searchInput').value = '';
+            renderTable(allRows);
+        }
+
+        // ── Render ───────────────────────────────────────────────────
+        function renderTable(rows) {
+            const countEl = document.getElementById('resultCount');
+            const areaEl  = document.getElementById('tableArea');
+
+            if (rows.length > 0) {
+                countEl.style.display = '';
+                countEl.textContent = '共 ' + rows.length + ' 筆';
+            } else {
+                countEl.style.display = 'none';
+            }
+
+            if (rows.length === 0) {
+                areaEl.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>目前沒有符合條件的得獎記錄</p>
+                    </div>`;
+                return;
+            }
+
+            const tbodyRows = rows.map(r => `
+                <tr>
+                    <td>
+                        <span class="prize-name">${r.prizeIcon} ${escHtml(r.prizeName)}</span>
+                    </td>
+                    <td>
+                        <div class="winner-details">
+                            <div class="staff-id"><i class="fas fa-id-badge"></i> ${escHtml(r.empId)}</div>
+                            <div class="name">${escHtml(r.name)}</div>
+                            <div class="company"><i class="fas fa-building"></i> ${escHtml(r.dept)}</div>
+                        </div>
+                    </td>
+                </tr>`).join('');
+
+            areaEl.innerHTML = `
+                <table class="winner-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">獎項名稱 Prize</th>
+                            <th>得獎人 Winner</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tbodyRows}</tbody>
+                </table>`;
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
