@@ -637,6 +637,13 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  // ── Auto-login if session still active ───────
+  if (sessionStorage.getItem('adminAuth')) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    initAdmin();
+  }
+
   // ── Auth ─────────────────────────────────────
   async function doLogin() {
     const pw  = document.getElementById('pwInput').value;
