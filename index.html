@@ -281,6 +281,14 @@
             display: inline-block;
         }
 
+        .prize-value {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+            padding-left: 2px;
+        }
+
         .winner-details .staff-id {
             color: var(--primary-dark);
             font-weight: 600;
@@ -425,21 +433,27 @@
             // 嘗試從 Supabase 讀取；若未設定則 fallback 至 winners.js
             if (_supabase) {
                 showLoading(true);
-                const { data, error } = await _supabase
-                    .from('winners')
-                    .select('*')
-                    .order('prize_rank', { ascending: true });
+                const [
+                    { data: winners, error: wErr },
+                    { data: prizes,  error: pErr }
+                ] = await Promise.all([
+                    _supabase.from('winners').select('*').order('prize_rank', { ascending: true }),
+                    _supabase.from('prizes').select('prize_rank,prize_value')
+                ]);
 
                 showLoading(false);
 
-                if (!error && data && data.length > 0) {
-                    allRows = data.map(r => ({
-                        prizeIcon: r.prize_icon || '',
-                        prizeName: r.prize_name,
-                        prizeRank: r.prize_rank,
-                        empId:     r.emp_id,
-                        name:      r.name,
-                        dept:      r.dept
+                if (!wErr && winners && winners.length > 0) {
+                    const prizeValueMap = {};
+                    (prizes || []).forEach(p => { prizeValueMap[p.prize_rank] = p.prize_value || 0; });
+
+                    allRows = winners.map(r => ({
+                        prizeName:  r.prize_name,
+                        prizeRank:  r.prize_rank,
+                        prizeValue: prizeValueMap[r.prize_rank] || 0,
+                        empId:      r.emp_id || '',
+                        name:       r.name,
+                        dept:       r.dept || ''
                     }));
                     renderTable(allRows);
                     return;
@@ -451,12 +465,12 @@
                 LOTTERY_DATA.prizes.forEach(prize => {
                     prize.winners.forEach(w => {
                         allRows.push({
-                            prizeIcon: prize.icon,
-                            prizeName: prize.name,
-                            prizeRank: prize.rank,
-                            empId:     w.empId,
-                            name:      w.name,
-                            dept:      w.dept
+                            prizeName:  prize.name,
+                            prizeRank:  prize.rank,
+                            prizeValue: prize.value || 0,
+                            empId:      w.empId || '',
+                            name:       w.name,
+                            dept:       w.dept || ''
                         });
                     });
                 });
@@ -477,10 +491,10 @@
             if (!q) { renderTable(allRows); return; }
             const qu = q.toUpperCase();
             const filtered = allRows.filter(r =>
-                r.empId.toUpperCase().indexOf(qu) > -1 ||
+                (r.empId || '').toUpperCase().indexOf(qu) > -1 ||
                 r.name.toUpperCase().indexOf(qu) > -1 ||
                 r.prizeName.toUpperCase().indexOf(qu) > -1 ||
-                r.dept.toUpperCase().indexOf(qu) > -1
+                (r.dept || '').toUpperCase().indexOf(qu) > -1
             );
             renderTable(filtered);
         }
@@ -516,10 +530,11 @@
                 <tr>
                     <td>
                         <span class="prize-name">${escHtml(r.prizeName)}</span>
+                        ${r.prizeValue ? `<span class="prize-value">$${Number(r.prizeValue).toLocaleString()}</span>` : ''}
                     </td>
                     <td>
                         <div class="winner-details">
-                            <div class="staff-id"><i class="fas fa-id-badge"></i> ${escHtml(r.empId)}</div>
+                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> ${escHtml(r.empId)}</div>` : ''}
                             <div class="name">${escHtml(r.name)}</div>
                             <div class="company"><i class="fas fa-building"></i> ${escHtml(r.dept)}</div>
                         </div>

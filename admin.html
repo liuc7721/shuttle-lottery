@@ -265,7 +265,39 @@
       border-radius: 6px;
       background: #fff;
     }
-    .ph-name-input:focus, .ph-icon-input:focus { outline: none; border-color: var(--blue); }
+    .ph-name-input:focus { outline: none; border-color: var(--blue); }
+    .ph-value-input {
+      width: 110px;
+      height: 34px;
+      padding: 0 8px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .ph-count-input {
+      width: 64px;
+      height: 34px;
+      padding: 0 8px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .ph-value-input:focus, .ph-count-input:focus { outline: none; border-color: var(--blue); }
+    .winner-slot-badge {
+      font-size: 11px;
+      background: #e8eeff;
+      color: #336;
+      border-radius: 10px;
+      padding: 3px 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
     .btn-del-prize {
       background: var(--danger-bg);
       color: var(--danger);
@@ -528,6 +560,8 @@
   </div>
 </div>
 
+<datalist id="empList"></datalist>
+
 <!-- ── CSV Import modal ── -->
 <div class="modal-overlay" id="csvModal">
   <div class="modal">
@@ -627,6 +661,8 @@
   // ── State ────────────────────────────────────
   let data;
 
+  let _employeeMap = {};
+
   async function initAdmin() {
     const fallback = JSON.parse(JSON.stringify(LOTTERY_DATA));
     data = { year: fallback.year, event: fallback.event, prizes: [] };
@@ -636,23 +672,44 @@
     if (_supabase) {
       document.getElementById('prizeList').innerHTML =
         '<div style="text-align:center;padding:40px;color:var(--muted)">載入中…</div>';
-      const { data: rows, error } = await _supabase
-        .from('winners').select('*').order('prize_rank', { ascending: true });
-      if (!error && rows) {
-        if (rows.length > 0) {
-          const prizeMap = new Map();
-          rows.forEach(r => {
-            if (!prizeMap.has(r.prize_rank))
-              prizeMap.set(r.prize_rank, { id: r.prize_rank, rank: r.prize_rank, name: r.prize_name, winners: [] });
-            prizeMap.get(r.prize_rank).winners.push({ empId: r.emp_id, name: r.name, dept: r.dept });
-          });
-          data.prizes = Array.from(prizeMap.values()).sort((a, b) => a.rank - b.rank);
-        }
-        // rows.length === 0 → data.prizes stays [] (empty panel)
-      } else {
+
+      const [
+        { data: prizeRows,  error: prizeErr  },
+        { data: winnerRows, error: winnerErr },
+        { data: empRows,    error: empErr    }
+      ] = await Promise.all([
+        _supabase.from('prizes').select('*').order('prize_rank', { ascending: true }),
+        _supabase.from('winners').select('*').order('prize_rank', { ascending: true }),
+        _supabase.from('employees').select('emp_id,name,dept')
+      ]);
+
+      // Build employee autocomplete map + datalist
+      if (!empErr && empRows) {
+        empRows.forEach(e => { _employeeMap[String(e.emp_id).toUpperCase()] = e; });
+        document.getElementById('empList').innerHTML = empRows
+          .map(e => `<option value="${escHtml(e.emp_id)}">${escHtml(e.name)} — ${escHtml(e.dept)}</option>`)
+          .join('');
+      }
+
+      if (prizeErr || winnerErr) {
         data.prizes = fallback.prizes;
         showToast('雲端讀取失敗，顯示本機備份資料', 'error');
+      } else if (prizeRows && prizeRows.length > 0) {
+        const winnerMap = new Map();
+        (winnerRows || []).forEach(r => {
+          if (!winnerMap.has(r.prize_rank)) winnerMap.set(r.prize_rank, []);
+          winnerMap.get(r.prize_rank).push({ empId: r.emp_id || '', name: r.name, dept: r.dept || '' });
+        });
+        data.prizes = prizeRows.map(p => ({
+          id:      p.prize_rank,
+          rank:    p.prize_rank,
+          name:    p.prize_name,
+          value:   p.prize_value || 0,
+          count:   p.prize_count || 0,
+          winners: winnerMap.get(p.prize_rank) || []
+        }));
       }
+      // prizeRows empty → data.prizes stays [] (empty panel)
     } else {
       data.prizes = fallback.prizes;
     }
@@ -670,14 +727,16 @@
     syncMeta();
     const cards = document.querySelectorAll('.prize-card');
     data.prizes = Array.from(cards).map((card, ci) => {
-      const name = card.querySelector('.ph-name-input').value.trim() || ('獎項 ' + (ci + 1));
-      const rows = card.querySelectorAll('.winner-row-edit');
+      const name  = card.querySelector('.ph-name-input').value.trim() || ('獎項 ' + (ci + 1));
+      const value = parseInt(card.querySelector('.ph-value-input')?.value) || 0;
+      const count = parseInt(card.querySelector('.ph-count-input')?.value) || 0;
+      const rows  = card.querySelectorAll('.winner-row-edit');
       const winners = Array.from(rows).map(row => ({
         empId: row.querySelector('.we-empid').value.trim(),
         name:  row.querySelector('.we-name').value.trim(),
         dept:  row.querySelector('.we-dept').value.trim()
       })).filter(w => w.empId || w.name);
-      return { id: ci + 1, rank: ci + 1, name, winners };
+      return { id: ci + 1, rank: ci + 1, name, value, count, winners };
     });
   }
 
@@ -694,11 +753,14 @@
     const card = document.createElement('div');
     card.className = 'prize-card';
     card.dataset.pi = pi;
-    const winnersHtml = (prize.winners || []).map((w, wi) =>
-      buildWinnerRowHtml(w, wi)).join('');
+    const winnersHtml  = (prize.winners || []).map((w, wi) => buildWinnerRowHtml(w, wi)).join('');
+    const filledCount  = (prize.winners || []).length;
     card.innerHTML = `
       <div class="prize-card-header">
-        <input class="ph-name-input" type="text" value="${escHtml(prize.name)}" placeholder="獎項名稱">
+        <input class="ph-name-input"  type="text"   value="${escHtml(prize.name)}"        placeholder="獎項名稱">
+        <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0">
+        <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0">
+        <span class="winner-slot-badge">${filledCount}/${prize.count ?? 0} 人</span>
         <button class="btn-del-prize" onclick="deletePrize(this)">刪除獎項</button>
       </div>
       <div class="prize-body">
@@ -717,7 +779,7 @@
   function buildWinnerRowHtml(w) {
     return `
       <div class="winner-row-edit">
-        <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="S0001">
+        <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="工號" list="empList">
         <input class="we-input we-name"  type="text" value="${escHtml(w.name  || '')}" placeholder="姓名">
         <input class="we-input we-dept"  type="text" value="${escHtml(w.dept  || '')}" placeholder="部門">
         <button class="btn-del-winner" onclick="deleteWinner(this)" title="刪除">×</button>
@@ -727,7 +789,7 @@
   // ── Prize actions ─────────────────────────────
   function addPrize() {
     syncAll();
-    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', winners: [] });
+    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', value: 0, count: 1, winners: [] });
     renderPrizes();
     const cards = document.querySelectorAll('.prize-card');
     cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -794,6 +856,18 @@
         btn.textContent = '儲存到雲端';
         return;
       }
+    }
+
+    // 同步更新 prizes 結構
+    const prizeRows = data.prizes.map(p => ({
+      prize_rank:  p.rank,
+      prize_name:  p.name,
+      prize_value: p.value || 0,
+      prize_count: p.count || 0
+    }));
+    const { error: delPrizeErr } = await _supabase.from('prizes').delete().gte('prize_rank', 0);
+    if (!delPrizeErr && prizeRows.length > 0) {
+      await _supabase.from('prizes').insert(prizeRows);
     }
 
     btn.disabled = false;
@@ -919,6 +993,19 @@
   // click outside modal to close
   document.getElementById('csvModal').addEventListener('click', function(e) {
     if (e.target === this) closeCsvModal();
+  });
+
+  // Employee autocomplete — auto-fill name & dept when emp_id is selected
+  document.getElementById('prizeList').addEventListener('change', function(e) {
+    if (!e.target.classList.contains('we-empid') || !e.target.value.trim()) return;
+    const emp = _employeeMap[e.target.value.trim().toUpperCase()];
+    if (!emp) return;
+    const row = e.target.closest('.winner-row-edit');
+    if (!row) return;
+    const nameInput = row.querySelector('.we-name');
+    const deptInput = row.querySelector('.we-dept');
+    if (!nameInput.value) nameInput.value = emp.name;
+    if (!deptInput.value) deptInput.value = emp.dept;
   });
 
   // ── Toast ────────────────────────────────────
