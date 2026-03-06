@@ -637,6 +637,11 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  // ── State ────────────────────────────────────
+  let data;
+  let _employeeMap = {};
+  let _snMap = {};
+
   // ── Auto-login if session still active ───────
   if (sessionStorage.getItem('adminAuth')) {
     document.getElementById('loginScreen').style.display = 'none';
@@ -684,12 +689,6 @@
     document.getElementById('pwInput').value = '';
     document.getElementById('loginError').textContent = '';
   }
-
-  // ── State ────────────────────────────────────
-  let data;
-
-  let _employeeMap = {};
-  let _snMap = {};
 
   async function initAdmin() {
     const fallback = JSON.parse(JSON.stringify(LOTTERY_DATA));
