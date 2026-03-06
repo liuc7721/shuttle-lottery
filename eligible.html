@@ -397,7 +397,7 @@
       if (w.sn)     wonBySn[String(w.sn)]                      = w.prize_name;
     });
 
-    allEmployees = (empRows || []).map(e => {
+    allEmployees = (empRows || []).filter(e => e.sn).map(e => {
       const empKey   = String(e.emp_id || '').toLowerCase();
       const snKey    = String(e.sn     || '');
       const wonPrize = wonByEmpId[empKey] || wonBySn[snKey] || null;
