@@ -328,9 +328,9 @@
       background: #f8f9ff;
     }
     .we-input:focus { border-color: var(--blue); background: #fff; }
-    .we-sn    { width: 70px; flex-shrink: 0; }
-    .we-empid { width: 90px; flex-shrink: 0; }
-    .we-name  { flex: 1.2; min-width: 0; }
+    .we-sn    { width: 60px; flex-shrink: 0; }
+    .we-empid { width: 80px; flex-shrink: 0; }
+    .we-name  { flex: 1.6; min-width: 0; }
     .we-dept  { flex: 1;   min-width: 0; }
     .btn-del-winner {
       background: none;
@@ -366,9 +366,9 @@
       padding: 0 4px;
     }
     .wh { font-size: 11px; color: var(--muted); font-weight: 700; }
-    .wh.we-sn   { width: 70px; flex-shrink: 0; }
-    .wh.we-empid { width: 90px; flex-shrink: 0; }
-    .wh.we-name  { flex: 1.2; min-width: 0; }
+    .wh.we-sn   { width: 60px; flex-shrink: 0; }
+    .wh.we-empid { width: 80px; flex-shrink: 0; }
+    .wh.we-name  { flex: 1.6; min-width: 0; }
     .wh.we-dept  { flex: 1;   min-width: 0; }
     .wh-del      { width: 34px; flex-shrink: 0; }
 
@@ -684,7 +684,7 @@
       ] = await Promise.all([
         _supabase.from('prizes').select('*').order('prize_rank', { ascending: true }),
         _supabase.from('winners').select('*').order('prize_rank', { ascending: true }),
-        _supabase.from('employees').select('emp_id,name,dept,sn')
+        _supabase.from('employees').select('*')
       ]);
 
       // Build employee autocomplete map + datalist
