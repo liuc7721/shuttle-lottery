@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
@@ -400,29 +401,75 @@
 
     <script src="data/winners.js"></script>
     <script>
-        // ── Flatten ──────────────────────────────────────────────────
+        // ─────────────────────────────────────────────
+        // SUPABASE CONFIG — 與 admin.html 填入相同值
+        // ─────────────────────────────────────────────
+        const SUPABASE_URL      = 'https://fdaehvslcoiagwkepauw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkYWVodnNsY29pYWd3a2VwYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjU5NjUsImV4cCI6MjA4ODM0MTk2NX0.7wVYRVtzqTU6IP8pDQ7WFkNybwD3GMHTrJ6sRErGSNg';
+
+        const _supabase = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+            : null;
+
         let allRows = [];
-        LOTTERY_DATA.prizes.forEach(prize => {
-            prize.winners.forEach(w => {
-                allRows.push({
-                    prizeIcon: prize.icon,
-                    prizeName: prize.name,
-                    prizeRank: prize.rank,
-                    empId:     w.empId,
-                    name:      w.name,
-                    dept:      w.dept
-                });
-            });
-        });
-        allRows.sort((a, b) => a.prizeRank - b.prizeRank);
 
         // ── Init ─────────────────────────────────────────────────────
-        renderTable(allRows);
-
         document.getElementById('searchInput').addEventListener('input', doSearch);
         document.getElementById('searchInput').addEventListener('keyup', function (e) {
             if (e.key === 'Enter') doSearch();
         });
+
+        loadData();
+
+        async function loadData() {
+            // 嘗試從 Supabase 讀取；若未設定則 fallback 至 winners.js
+            if (_supabase) {
+                showLoading(true);
+                const { data, error } = await _supabase
+                    .from('winners')
+                    .select('*')
+                    .order('prize_rank', { ascending: true });
+
+                showLoading(false);
+
+                if (!error && data && data.length > 0) {
+                    allRows = data.map(r => ({
+                        prizeIcon: r.prize_icon || '',
+                        prizeName: r.prize_name,
+                        prizeRank: r.prize_rank,
+                        empId:     r.emp_id,
+                        name:      r.name,
+                        dept:      r.dept
+                    }));
+                    renderTable(allRows);
+                    return;
+                }
+            }
+
+            // Fallback：使用本機 winners.js
+            if (typeof LOTTERY_DATA !== 'undefined') {
+                LOTTERY_DATA.prizes.forEach(prize => {
+                    prize.winners.forEach(w => {
+                        allRows.push({
+                            prizeIcon: prize.icon,
+                            prizeName: prize.name,
+                            prizeRank: prize.rank,
+                            empId:     w.empId,
+                            name:      w.name,
+                            dept:      w.dept
+                        });
+                    });
+                });
+                allRows.sort((a, b) => a.prizeRank - b.prizeRank);
+            }
+            renderTable(allRows);
+        }
+
+        function showLoading(on) {
+            document.getElementById('tableArea').innerHTML = on
+                ? `<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>載入中…</p></div>`
+                : '';
+        }
 
         // ── Actions ──────────────────────────────────────────────────
         function doSearch() {
@@ -440,7 +487,8 @@
 
         function doRefresh() {
             document.getElementById('searchInput').value = '';
-            renderTable(allRows);
+            allRows = [];
+            loadData();
         }
 
         // ── Render ───────────────────────────────────────────────────

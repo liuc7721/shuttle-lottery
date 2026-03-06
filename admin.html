@@ -6,6 +6,7 @@
   <title>後台管理 - 五崧科技尾牙</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,6 +15,9 @@
       --blue-dark:  #002270;
       --blue-light: #1a4dcc;
       --gold:       #D4AF37;
+      --green:      #0a7a3e;
+      --green-bg:   #edfaf3;
+      --green-bdr:  #a0dfc0;
       --text:       #1a1a2e;
       --muted:      #5a6070;
       --bg:         #f0f4ff;
@@ -96,19 +100,47 @@
       padding: 14px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
       position: sticky;
       top: 0;
       z-index: 100;
       box-shadow: 0 2px 12px rgba(0,51,153,.3);
     }
-    .top-bar-title { font-size: 16px; font-weight: 700; color: #fff; flex: 1; }
+    .top-bar-title { font-size: 16px; font-weight: 700; color: #fff; flex: 1; min-width: 120px; }
+    .btn-save {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1.5px solid var(--green-bdr);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-save:hover { opacity: .85; }
+    .btn-save:disabled { opacity: .5; cursor: default; }
+    .btn-csv {
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-csv:hover { background: rgba(255,255,255,.25); }
     .btn-export {
       background: var(--gold);
       color: var(--blue-dark);
       border: none;
       border-radius: 8px;
-      padding: 8px 16px;
+      padding: 8px 14px;
       font-size: 13px;
       font-weight: 700;
       font-family: inherit;
@@ -126,6 +158,27 @@
       font-family: inherit;
       cursor: pointer;
     }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform .3s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
 
     /* ── Main wrapper ── */
     .admin-main {
@@ -301,7 +354,7 @@
     }
     .btn-add-prize:hover { border-color: var(--blue); color: var(--blue); }
 
-    /* ━━━━━━━━━━━━━━━━━━ Export modal ━━━━━━━━━━━━━━━━━━ */
+    /* ━━━━━━━━━━━━━━━━━━ Modals ━━━━━━━━━━━━━━━━━━ */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -384,6 +437,56 @@
       font-family: inherit;
       cursor: pointer;
     }
+
+    /* ── CSV modal specific ── */
+    .csv-format-box {
+      background: #f5f7ff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .csv-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 10px;
+    }
+    .csv-upload-area:hover { border-color: var(--blue); background: #f0f4ff; }
+    .csv-upload-area input { display: none; }
+    .csv-upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .csv-upload-label { font-size: 14px; font-weight: 600; color: var(--blue); }
+    .csv-upload-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .csv-preview {
+      background: #f8f9ff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+    }
+    .btn-import {
+      flex: 1;
+      height: 42px;
+      background: linear-gradient(135deg, var(--green), #15a357);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-import:disabled { opacity: .5; cursor: default; }
   </style>
 </head>
 <body>
@@ -410,7 +513,9 @@
 <div id="adminApp">
   <div class="top-bar">
     <div class="top-bar-title">尾牙抽獎 · 後台管理</div>
-    <button class="btn-export" onclick="openExport()">匯出 winners.js</button>
+    <button class="btn-save" id="btnSave" onclick="saveToSupabase()">儲存到雲端</button>
+    <button class="btn-csv" onclick="openCsvModal()">匯入 CSV</button>
+    <button class="btn-export" onclick="openExport()">匯出備份</button>
     <button class="btn-logout" onclick="doLogout()">登出</button>
   </div>
 
@@ -439,13 +544,12 @@
 <div class="modal-overlay" id="exportModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">匯出 winners.js</div>
+      <div class="modal-title">匯出備份 winners.js</div>
       <button class="modal-close" onclick="closeExport()">×</button>
     </div>
     <div class="modal-body">
       <div class="modal-note">
-        請下載此檔案，並將它覆蓋取代專案中的
-        <code>data/winners.js</code>，重新整理網頁即可生效。
+        此為本機備份用途。日常更新請使用「儲存到雲端」按鈕，資料將直接同步至 Supabase。
       </div>
       <textarea class="code-area" id="exportTextarea" readonly></textarea>
     </div>
@@ -456,17 +560,83 @@
   </div>
 </div>
 
+<!-- ── CSV Import modal ── -->
+<div class="modal-overlay" id="csvModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">匯入 CSV 得獎名單</div>
+      <button class="modal-close" onclick="closeCsvModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-note">
+        CSV 欄位格式（第一行為標題列，之後每行一筆得獎者）：
+      </div>
+      <div class="csv-format-box">prize_rank,prize_name,prize_icon,emp_id,name,dept<br>1,頭獎,🏆,S0012,陳大文,研發部<br>2,二獎,🥈,S0034,林小芳,業務部</div>
+      <div class="modal-note" style="margin-bottom: 10px;">
+        匯入後將取代目前所有獎項與得獎者資料，請確認後再儲存到雲端。
+      </div>
+      <label class="csv-upload-area" id="csvDropArea">
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" onchange="onCsvFileSelected(this)">
+        <div class="csv-upload-icon">📂</div>
+        <div class="csv-upload-label">點擊選擇 CSV 檔案</div>
+        <div class="csv-upload-sub">或拖曳檔案到此區域</div>
+      </label>
+      <div class="csv-preview" id="csvPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-import" id="btnImport" onclick="doImportCsv()" disabled>匯入資料</button>
+      <button class="btn-copy" onclick="closeCsvModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
 <script src="data/winners.js"></script>
 <script>
   // ─────────────────────────────────────────────
-  // CONFIG — change the password here
+  // SUPABASE CONFIG — 填入你的 Supabase 連線資訊
   // ─────────────────────────────────────────────
-  const ADMIN_PASSWORD = 'shuttle2026';
+  const SUPABASE_URL      = 'https://fdaehvslcoiagwkepauw.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkYWVodnNsY29pYWd3a2VwYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjU5NjUsImV4cCI6MjA4ODM0MTk2NX0.7wVYRVtzqTU6IP8pDQ7WFkNybwD3GMHTrJ6sRErGSNg';
+
+  const _supabase = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+  // ─────────────────────────────────────────────
+  // PASSWORD — SHA-256 雜湊（不存明文）
+  // 取得雜湊值：在瀏覽器 Console 貼上：
+  //   sha256('你的密碼').then(h => console.log(h))
+  // ─────────────────────────────────────────────
+  const ADMIN_PASSWORD_HASH = '1429c8983ef0d3d59996fb2c61c55f7771b843eff7bb75de6cabd9cfdb6f8409';
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
   // ── Auth ─────────────────────────────────────
-  function doLogin() {
-    const pw = document.getElementById('pwInput').value;
-    if (pw === ADMIN_PASSWORD) {
+  async function doLogin() {
+    const pw  = document.getElementById('pwInput').value;
+    const btn = document.querySelector('.btn-login');
+    btn.disabled = true;
+    btn.textContent = '驗證中…';
+
+    // 若尚未設定 hash，暫時允許明文 fallback（方便初次設定）
+    let ok = false;
+    if (ADMIN_PASSWORD_HASH === 'YOUR_PASSWORD_HASH') {
+      ok = (pw === 'shuttle2026');
+    } else {
+      const hash = await sha256(pw);
+      ok = (hash === ADMIN_PASSWORD_HASH);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '進入管理介面';
+
+    if (ok) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('adminApp').style.display = 'block';
       initAdmin();
@@ -487,10 +657,10 @@
   }
 
   // ── State ────────────────────────────────────
-  let data; // working copy
+  let data;
 
   function initAdmin() {
-    data = JSON.parse(JSON.stringify(LOTTERY_DATA)); // deep clone
+    data = JSON.parse(JSON.stringify(LOTTERY_DATA));
     document.getElementById('fYear').value  = data.year;
     document.getElementById('fEvent').value = data.event;
     renderPrizes();
@@ -531,10 +701,8 @@
     const card = document.createElement('div');
     card.className = 'prize-card';
     card.dataset.pi = pi;
-
     const winnersHtml = (prize.winners || []).map((w, wi) =>
       buildWinnerRowHtml(w, wi)).join('');
-
     card.innerHTML = `
       <div class="prize-card-header">
         <input class="ph-icon-input" type="text" value="${escHtml(prize.icon || '🎁')}" maxlength="4" title="獎項圖示">
@@ -554,7 +722,7 @@
     return card;
   }
 
-  function buildWinnerRowHtml(w, wi) {
+  function buildWinnerRowHtml(w) {
     return `
       <div class="winner-row-edit">
         <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="S0001">
@@ -567,10 +735,8 @@
   // ── Prize actions ─────────────────────────────
   function addPrize() {
     syncAll();
-    const newPrize = { id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', icon: '🎁', winners: [] };
-    data.prizes.push(newPrize);
+    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', icon: '🎁', winners: [] });
     renderPrizes();
-    // scroll to new card
     const cards = document.querySelectorAll('.prize-card');
     cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -586,7 +752,7 @@
 
   function addWinner(btn) {
     const wList = btn.closest('.prize-body').querySelector('.winners-list');
-    wList.insertAdjacentHTML('beforeend', buildWinnerRowHtml({}, 0));
+    wList.insertAdjacentHTML('beforeend', buildWinnerRowHtml({}));
     wList.lastElementChild?.querySelector('input')?.focus();
   }
 
@@ -594,17 +760,164 @@
     btn.closest('.winner-row-edit').remove();
   }
 
-  // ── Export ────────────────────────────────────
+  // ━━━━━━━━━━━━━━━━━━ Supabase Save ━━━━━━━━━━━━━━━━━━
+  async function saveToSupabase() {
+    if (!_supabase) {
+      showToast('尚未設定 Supabase 連線資訊，請先填入 SUPABASE_URL 與 SUPABASE_ANON_KEY', 'error');
+      return;
+    }
+    syncAll();
+
+    const rows = [];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        rows.push({
+          prize_rank: prize.rank,
+          prize_name: prize.name,
+          emp_id:     w.empId,
+          name:       w.name,
+          dept:       w.dept
+        });
+      });
+    });
+
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.textContent = '儲存中…';
+
+    // 清除舊資料，再全部寫入
+    const { error: delErr } = await _supabase.from('winners').delete().gte('id', 0);
+    if (delErr) {
+      showToast('刪除舊資料失敗：' + delErr.message, 'error');
+      btn.disabled = false;
+      btn.textContent = '儲存到雲端';
+      return;
+    }
+
+    if (rows.length > 0) {
+      const { error: insErr } = await _supabase.from('winners').insert(rows);
+      if (insErr) {
+        showToast('寫入失敗：' + insErr.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '儲存到雲端';
+        return;
+      }
+    }
+
+    btn.disabled = false;
+    btn.textContent = '儲存到雲端';
+    showToast('已成功儲存到 Supabase！', 'success');
+  }
+
+  // ━━━━━━━━━━━━━━━━━━ CSV Import ━━━━━━━━━━━━━━━━━━
+  let _csvParsed = null;
+
+  function openCsvModal() {
+    _csvParsed = null;
+    document.getElementById('csvFileInput').value = '';
+    document.getElementById('csvPreview').style.display = 'none';
+    document.getElementById('btnImport').disabled = true;
+    document.getElementById('csvModal').classList.add('open');
+  }
+  function closeCsvModal() {
+    document.getElementById('csvModal').classList.remove('open');
+  }
+
+  function onCsvFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => parseCsvText(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function parseCsvText(text) {
+    const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      showToast('CSV 格式錯誤：至少需要標題列與一行資料', 'error');
+      return;
+    }
+
+    // 略過第一行標題
+    const dataLines = lines.slice(1);
+    const prizeMap  = new Map(); // rank → { name, icon, winners[] }
+
+    for (const line of dataLines) {
+      // 支援含逗號的欄位（用雙引號包住）
+      const cols = parseCsvLine(line);
+      if (cols.length < 6) continue;
+      const [rank, prize_name, prize_icon, emp_id, name, dept] = cols.map(c => c.trim());
+      const r = parseInt(rank);
+      if (!prizeMap.has(r)) {
+        prizeMap.set(r, { rank: r, name: prize_name, icon: prize_icon || '🎁', winners: [] });
+      }
+      if (emp_id || name) {
+        prizeMap.get(r).winners.push({ empId: emp_id, name, dept: dept || '' });
+      }
+    }
+
+    const prizes = Array.from(prizeMap.values()).sort((a, b) => a.rank - b.rank);
+    const totalWinners = prizes.reduce((s, p) => s + p.winners.length, 0);
+
+    _csvParsed = prizes;
+    const preview = document.getElementById('csvPreview');
+    preview.style.display = 'block';
+    preview.textContent = `已解析：${prizes.length} 個獎項，共 ${totalWinners} 位得獎者`;
+    document.getElementById('btnImport').disabled = false;
+  }
+
+  function parseCsvLine(line) {
+    const result = [];
+    let cur = '', inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuote = !inQuote; continue; }
+      if (ch === ',' && !inQuote) { result.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    result.push(cur);
+    return result;
+  }
+
+  function doImportCsv() {
+    if (!_csvParsed) return;
+    syncAll();
+    data.prizes = _csvParsed.map((p, i) => ({
+      id:      i + 1,
+      rank:    p.rank,
+      name:    p.name,
+      icon:    p.icon,
+      winners: p.winners
+    }));
+    renderPrizes();
+    closeCsvModal();
+    showToast('CSV 已匯入，請確認資料後按「儲存到雲端」', 'success');
+  }
+
+  // Drag-and-drop on CSV upload area
+  const dropArea = document.getElementById('csvDropArea');
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.borderColor = '#003399'; });
+  dropArea.addEventListener('dragleave', () => { dropArea.style.borderColor = ''; });
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault();
+    dropArea.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => parseCsvText(ev.target.result);
+      reader.readAsText(file, 'UTF-8');
+    }
+  });
+
+  // ━━━━━━━━━━━━━━━━━━ Export (backup) ━━━━━━━━━━━━━━━━━━
   function buildFileContent() {
     syncAll();
-    syncMeta();
     const d = {
       year:   parseInt(document.getElementById('fYear').value)  || data.year,
       event:  document.getElementById('fEvent').value.trim()    || data.event,
       prizes: data.prizes
     };
-    const json = JSON.stringify(d, null, 2);
-    return `// 五崧科技 尾牙抽獎資料\n// 修改此檔案以更新得獎名單，存檔後重新整理網頁即可生效\nconst LOTTERY_DATA = ${json};\n`;
+    return `// 五崧科技 尾牙抽獎資料\n// 修改此檔案以更新得獎名單，存檔後重新整理網頁即可生效\nconst LOTTERY_DATA = ${JSON.stringify(d, null, 2)};\n`;
   }
 
   function openExport() {
@@ -615,7 +928,6 @@
   function closeExport() {
     document.getElementById('exportModal').classList.remove('open');
   }
-
   function downloadFile() {
     const content = document.getElementById('exportTextarea').value;
     const blob = new Blob([content], { type: 'text/javascript' });
@@ -624,7 +936,6 @@
     a.click();
     URL.revokeObjectURL(url);
   }
-
   function copyCode() {
     const ta = document.getElementById('exportTextarea');
     ta.select();
@@ -634,10 +945,23 @@
     setTimeout(() => { btn.textContent = '複製內容'; }, 2000);
   }
 
-  // click outside modal to close
+  // click outside modals to close
   document.getElementById('exportModal').addEventListener('click', function(e) {
     if (e.target === this) closeExport();
   });
+  document.getElementById('csvModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCsvModal();
+  });
+
+  // ── Toast ────────────────────────────────────
+  let _toastTimer;
+  function showToast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type ? `show ${type}` : 'show';
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  }
 
   function escHtml(str) {
     return String(str)
