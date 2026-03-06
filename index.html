@@ -57,20 +57,21 @@
         }
 
         .header-inner {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 20px;
         }
 
         .header-logo {
             height: 144px;
             border-radius: 6px;
-            flex-shrink: 0;
+            position: absolute;
+            left: 0;
         }
 
         .header-text {
-            text-align: left;
+            text-align: center;
         }
 
             .header-card h1 {
@@ -365,6 +366,10 @@
             .header-inner {
                 flex-direction: column;
                 gap: 12px;
+            }
+
+            .header-logo {
+                position: static;
             }
 
             .header-text {
