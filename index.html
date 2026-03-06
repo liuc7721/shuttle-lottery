@@ -407,7 +407,7 @@
                 <img src="shuttle.jpg" alt="Shuttle" class="header-logo">
                 <div class="header-text">
                     <h1><i class="fas fa-trophy"></i> 中獎查詢 Good Luck</h1>
-                    <p id="eventSubtitle" class="event-subtitle"></p>
+                    <p class="event-subtitle">五崧捷運2026年度春酒</p>
                 </div>
             </div>
         </div>
@@ -461,12 +461,6 @@
             : null;
 
         let allRows = [];
-
-        // 顯示活動年度與名稱
-        if (typeof LOTTERY_DATA !== 'undefined') {
-            document.getElementById('eventSubtitle').textContent =
-                LOTTERY_DATA.event;
-        }
 
         // ── Init ─────────────────────────────────────────────────────
         document.getElementById('searchInput').addEventListener('input', doSearch);
