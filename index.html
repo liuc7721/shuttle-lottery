@@ -53,8 +53,24 @@
             padding: 30px;
             margin-bottom: 20px;
             box-shadow: var(--shadow);
-            text-align: center;
             border: 1px solid var(--card-border);
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .header-logo {
+            height: 56px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .header-text {
+            text-align: left;
         }
 
             .header-card h1 {
@@ -346,6 +362,15 @@
                 padding: 20px;
             }
 
+            .header-inner {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .header-text {
+                text-align: center;
+            }
+
                 .header-card h1 {
                     font-size: 20px;
                 }
@@ -378,8 +403,13 @@
 <body>
     <div class="main-container">
         <div class="header-card">
-            <h1><i class="fas fa-trophy"></i> 中獎查詢 Lucky Draw Winner List</h1>
-            <p id="eventSubtitle" class="event-subtitle"></p>
+            <div class="header-inner">
+                <img src="shuttle.jpg" alt="Shuttle" class="header-logo">
+                <div class="header-text">
+                    <h1><i class="fas fa-trophy"></i> 中獎查詢 Lucky Draw Winner List</h1>
+                    <p id="eventSubtitle" class="event-subtitle"></p>
+                </div>
+            </div>
         </div>
 
         <div class="search-card">
