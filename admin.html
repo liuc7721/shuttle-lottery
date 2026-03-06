@@ -182,18 +182,9 @@
 
     /* ── Main wrapper ── */
     .admin-main {
-      max-width: 960px;
+      max-width: 700px;
       margin: 0 auto;
       padding: 24px 16px 60px;
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 20px;
-      align-items: start;
-    }
-    .admin-left  { display: flex; flex-direction: column; gap: 0; }
-    .admin-right { display: flex; flex-direction: column; gap: 0; }
-    @media (max-width: 680px) {
-      .admin-main { grid-template-columns: 1fr; }
     }
 
     /* ── Tip card ── */
@@ -603,35 +594,33 @@
   </div>
 
   <div class="admin-main">
-    <!-- Left column: event info + tips -->
-    <div class="admin-left">
-      <div class="info-card">
-        <div class="section-label">活動資訊</div>
-        <div class="info-row">
-          <label>年度</label>
-          <input class="field" id="fYear" type="number" placeholder="2026">
-        </div>
-        <div class="info-row">
-          <label>活動名稱</label>
-          <input class="field" id="fEvent" type="text" placeholder="五崧科技 尾牙晚宴">
-        </div>
+    <!-- Event info -->
+    <div class="info-card">
+      <div class="section-label">活動資訊</div>
+      <div class="info-row">
+        <label>年度</label>
+        <input class="field" id="fYear" type="number" placeholder="2026">
       </div>
-
-      <div class="tip-card">
-        <div class="section-label">操作提示</div>
-        <ul class="tip-list">
-          <li>在得獎欄位輸入<strong>流水號</strong>，系統會自動帶入工號、姓名、部門，帶入後欄位鎖定以防手誤</li>
-          <li>也可輸入<strong>工號</strong>反查流水號與其他資料</li>
-          <li>新增或刪除得獎者後，系統會<strong>自動儲存</strong>到雲端，無需手動按「儲存到雲端」</li>
-        </ul>
+      <div class="info-row">
+        <label>活動名稱</label>
+        <input class="field" id="fEvent" type="text" placeholder="五崧科技 尾牙晚宴">
       </div>
     </div>
 
-    <!-- Right column: prize list -->
-    <div class="admin-right">
-      <div id="prizeList"></div>
-      <button class="btn-add-prize" onclick="addPrize()">＋ 新增獎項</button>
+    <!-- Tip card -->
+    <div class="tip-card">
+      <div class="section-label">操作提示</div>
+      <ul class="tip-list">
+        <li>在得獎欄位輸入<strong>流水號</strong>，系統會自動帶入工號、姓名、部門，帶入後欄位鎖定以防手誤</li>
+        <li>也可輸入<strong>工號</strong>反查流水號與其他資料</li>
+        <li>新增或刪除得獎者後，系統會<strong>自動儲存</strong>到雲端，無需手動按「儲存到雲端」</li>
+      </ul>
     </div>
+
+    <!-- Prize list -->
+    <div id="prizeList"></div>
+
+    <button class="btn-add-prize" onclick="addPrize()">＋ 新增獎項</button>
   </div>
 </div>
 
