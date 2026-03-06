@@ -299,6 +299,21 @@
     }
     .btn-add-emp:hover { opacity: .85; }
 
+    /* ── Edit employee button (inline in table) ── */
+    .btn-edit-emp {
+      background: #e8eeff;
+      color: var(--blue);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-edit-emp:hover { background: #d0d9f8; }
+
     /* ── Modal ── */
     .modal-overlay {
       display: none;
@@ -452,6 +467,7 @@
               <th>姓名</th>
               <th>部門</th>
               <th>中獎狀態</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -467,7 +483,7 @@
 <div class="modal-overlay" id="addEmpModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">新增員工</div>
+      <div class="modal-title" id="empModalTitle">新增員工</div>
       <button class="modal-close" onclick="closeAddEmpModal()">×</button>
     </div>
     <div class="modal-body">
@@ -510,8 +526,10 @@
   }
 
   // ── State ────────────────────────────────────────
-  let allEmployees = [];
-  let currentTab   = 'all';
+  let allEmployees   = [];
+  let currentTab     = 'all';
+  let _empModalMode  = 'add';   // 'add' | 'edit'
+  let _editOriginalSn = null;   // SN used as WHERE key when editing
 
   async function init() {
     document.getElementById('tableInfo').textContent = '載入中…';
@@ -582,7 +600,7 @@
   function renderTable(rows) {
     const tbody = document.getElementById('tableBody');
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5">
+      tbody.innerHTML = `<tr><td colspan="6">
         <div class="empty-state">
           <div class="empty-icon">🔍</div>
           <div>沒有符合條件的資料</div>
@@ -600,6 +618,7 @@
         <td>${escHtml(e.name)}</td>
         <td>${escHtml(e.dept)}</td>
         <td>${status}</td>
+        <td><button class="btn-edit-emp" onclick="openEditModal('${escHtml(String(e.sn))}')">編輯</button></td>
       </tr>`;
     }).join('');
   }
@@ -634,11 +653,14 @@
 
   // ── Add employee modal ───────────────────────
   function openAddEmpModal() {
+    _empModalMode  = 'add';
+    _editOriginalSn = null;
+    document.getElementById('empModalTitle').textContent   = '新增員工';
     document.getElementById('empSnInput').value   = '';
     document.getElementById('empIdInput').value   = '';
     document.getElementById('empNameInput').value = '';
     document.getElementById('empDeptInput').value = '';
-    document.getElementById('btnAddEmpSubmit').disabled = false;
+    document.getElementById('btnAddEmpSubmit').disabled    = false;
     document.getElementById('btnAddEmpSubmit').textContent = '新增';
     document.getElementById('addEmpModal').classList.add('open');
     document.getElementById('empSnInput').focus();
@@ -648,19 +670,67 @@
     document.getElementById('addEmpModal').classList.remove('open');
   }
 
+  function openEditModal(sn) {
+    const emp = allEmployees.find(e => String(e.sn) === String(sn));
+    if (!emp) { showToast('找不到該員工資料', 'error'); return; }
+    _empModalMode   = 'edit';
+    _editOriginalSn = String(sn);
+    document.getElementById('empModalTitle').textContent   = '編輯員工';
+    document.getElementById('empSnInput').value   = emp.sn;
+    document.getElementById('empIdInput').value   = emp.empId || '';
+    document.getElementById('empNameInput').value = emp.name;
+    document.getElementById('empDeptInput').value = emp.dept || '';
+    document.getElementById('btnAddEmpSubmit').disabled    = false;
+    document.getElementById('btnAddEmpSubmit').textContent = '儲存變更';
+    document.getElementById('addEmpModal').classList.add('open');
+    document.getElementById('empSnInput').focus();
+  }
+
   async function submitAddEmp() {
-    const sn   = document.getElementById('empSnInput').value.trim();
+    const sn    = document.getElementById('empSnInput').value.trim();
     const empId = document.getElementById('empIdInput').value.trim();
-    const name = document.getElementById('empNameInput').value.trim();
-    const dept = document.getElementById('empDeptInput').value.trim();
+    const name  = document.getElementById('empNameInput').value.trim();
+    const dept  = document.getElementById('empDeptInput').value.trim();
 
     if (!sn)   { showToast('請輸入流水號', 'error'); document.getElementById('empSnInput').focus(); return; }
     if (!name) { showToast('請輸入姓名',   'error'); document.getElementById('empNameInput').focus(); return; }
 
     const btn = document.getElementById('btnAddEmpSubmit');
     btn.disabled = true;
-    btn.textContent = '新增中…';
 
+    // ── Edit mode ──────────────────────────────────
+    if (_empModalMode === 'edit') {
+      btn.textContent = '儲存中…';
+      const { error } = await _supabase.from('employees')
+        .update({ sn, emp_id: empId || null, name, dept: dept || null })
+        .eq('sn', _editOriginalSn);
+
+      if (error) {
+        btn.disabled = false;
+        btn.textContent = '儲存變更';
+        const msg = error.code === '23505' ? '流水號或工號已存在，請確認' : error.message;
+        showToast('編輯失敗：' + msg, 'error');
+        return;
+      }
+
+      // Update local array in-place
+      const idx = allEmployees.findIndex(e => String(e.sn) === _editOriginalSn);
+      if (idx !== -1) {
+        allEmployees[idx] = { ...allEmployees[idx], sn, empId: empId || '', name, dept: dept || '' };
+      }
+      allEmployees.sort((a, b) => String(a.sn).localeCompare(String(b.sn), undefined, { numeric: true }));
+      const wonCount = allEmployees.filter(e => e.wonPrize).length;
+      document.getElementById('statTotal').textContent     = allEmployees.length;
+      document.getElementById('statWon').textContent       = wonCount;
+      document.getElementById('statRemaining').textContent = allEmployees.length - wonCount;
+      applyFilter();
+      closeAddEmpModal();
+      showToast(`已更新 ${name}（流水號 ${sn}）`, 'success');
+      return;
+    }
+
+    // ── Add mode ───────────────────────────────────
+    btn.textContent = '新增中…';
     const { error } = await _supabase.from('employees').insert({
       sn,
       emp_id: empId || null,
@@ -676,7 +746,6 @@
       return;
     }
 
-    // Add to local list and re-render
     allEmployees.push({ sn, empId: empId || '', name, dept: dept || '', wonPrize: null });
     allEmployees.sort((a, b) => String(a.sn).localeCompare(String(b.sn), undefined, { numeric: true }));
     const wonCount = allEmployees.filter(e => e.wonPrize).length;
