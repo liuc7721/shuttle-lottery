@@ -655,6 +655,7 @@
   let _employeeMap = {};
   let _snMap = {};
   let _autoSaveTimer = null;
+  let _dataLoaded    = false;   // guard: prevent auto-save before initAdmin() renders
 
   // ── Auto-login if session still active ───────
   if (sessionStorage.getItem('adminAuth')) {
@@ -764,6 +765,7 @@
     }
 
     renderPrizes();
+    _dataLoaded = true;
   }
 
   // ── Sync fields → data ───────────────────────
@@ -955,6 +957,7 @@
 
   // ━━━━━━━━━━━━━━━━━━ Auto-Save ━━━━━━━━━━━━━━━━━━
   function scheduleAutoSave() {
+    if (!_dataLoaded) return;   // initAdmin() not done yet, do not overwrite DB
     clearTimeout(_autoSaveTimer);
     _autoSaveTimer = setTimeout(() => autoSave(), 800);
   }
@@ -998,17 +1001,7 @@
       }
     }
 
-    const prizeRows = data.prizes.map(p => ({
-      prize_rank:  p.rank,
-      prize_name:  p.name,
-      prize_value: p.value || 0,
-      prize_count: p.count || 0
-    }));
-    const { error: delPrizeErr } = await _supabase.from('prizes').delete().gte('prize_rank', 0);
-    if (!delPrizeErr && prizeRows.length > 0) {
-      await _supabase.from('prizes').insert(prizeRows);
-    }
-
+    // prizes 表（獎項結構）不在 auto-save 範圍內，由手動「儲存到雲端」負責
     statusEl.textContent = '✓ 已同步';
     clearTimeout(_autoSaveFadeTimer);
     _autoSaveFadeTimer = setTimeout(() => {
