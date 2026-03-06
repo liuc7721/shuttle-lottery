@@ -1002,10 +1002,8 @@
     if (!emp) return;
     const row = e.target.closest('.winner-row-edit');
     if (!row) return;
-    const nameInput = row.querySelector('.we-name');
-    const deptInput = row.querySelector('.we-dept');
-    if (!nameInput.value) nameInput.value = emp.name;
-    if (!deptInput.value) deptInput.value = emp.dept;
+    row.querySelector('.we-name').value = emp.name;
+    row.querySelector('.we-dept').value = emp.dept;
   });
 
   // ── Toast ────────────────────────────────────
