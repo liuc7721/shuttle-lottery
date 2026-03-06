@@ -805,13 +805,31 @@
   }
 
   function addWinner(btn) {
-    const wList = btn.closest('.prize-body').querySelector('.winners-list');
+    const prizeBody = btn.closest('.prize-body');
+    const prizeCard = prizeBody.closest('.prize-card');
+    const maxCount  = parseInt(prizeCard.querySelector('.ph-count-input')?.value) || 0;
+    const filled    = prizeBody.querySelectorAll('.winner-row-edit').length;
+    if (maxCount > 0 && filled >= maxCount) {
+      showToast(`此獎項名額已滿（${maxCount} 人）`, 'error');
+      return;
+    }
+    const wList = prizeBody.querySelector('.winners-list');
     wList.insertAdjacentHTML('beforeend', buildWinnerRowHtml({}));
     wList.lastElementChild?.querySelector('input')?.focus();
+    updateSlotBadge(prizeCard);
   }
 
   function deleteWinner(btn) {
+    const prizeCard = btn.closest('.prize-card');
     btn.closest('.winner-row-edit').remove();
+    updateSlotBadge(prizeCard);
+  }
+
+  function updateSlotBadge(prizeCard) {
+    const filled   = prizeCard.querySelectorAll('.winner-row-edit').length;
+    const maxCount = parseInt(prizeCard.querySelector('.ph-count-input')?.value) || 0;
+    const badge    = prizeCard.querySelector('.winner-slot-badge');
+    if (badge) badge.textContent = `${filled}/${maxCount} 人`;
   }
 
   // ━━━━━━━━━━━━━━━━━━ Supabase Save ━━━━━━━━━━━━━━━━━━
