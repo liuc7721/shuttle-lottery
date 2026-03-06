@@ -283,6 +283,114 @@
     }
     #toast.show  { transform: translateX(-50%) translateY(0); }
     #toast.error { background: var(--danger); }
+
+    /* ── Add employee button ── */
+    .btn-add-emp {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-add-emp:hover { opacity: .85; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .modal-body { padding: 16px 20px; }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .form-input {
+      height: 40px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-input:focus { border-color: var(--blue); }
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+    }
+    .btn-submit {
+      flex: 1;
+      height: 42px;
+      background: linear-gradient(135deg, var(--green), #15a357);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-submit:disabled { opacity: .5; cursor: default; }
+    .btn-cancel {
+      flex: 1;
+      height: 42px;
+      background: #f5f7ff;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -300,6 +408,7 @@
   <div class="top-bar">
     <a href="admin.html" class="btn-back">← 返回後台</a>
     <div class="top-bar-title">可抽獎名單</div>
+    <button class="btn-add-emp" onclick="openAddEmpModal()">＋ 新增員工</button>
     <button class="btn-export" onclick="exportCsv()">匯出 CSV</button>
   </div>
 
@@ -353,6 +462,38 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- ── Add employee modal ── -->
+<div class="modal-overlay" id="addEmpModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增員工</div>
+      <button class="modal-close" onclick="closeAddEmpModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">流水號 <span style="color:var(--danger)">*</span></label>
+        <input class="form-input" id="empSnInput" type="text" placeholder="例：5193" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label class="form-label">工號</label>
+        <input class="form-input" id="empIdInput" type="text" placeholder="例：1234" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label class="form-label">姓名 <span style="color:var(--danger)">*</span></label>
+        <input class="form-input" id="empNameInput" type="text" placeholder="例：王小明" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label class="form-label">部門</label>
+        <input class="form-input" id="empDeptInput" type="text" placeholder="例：台北運輸" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-submit" id="btnAddEmpSubmit" onclick="submitAddEmp()">新增</button>
+      <button class="btn-cancel" onclick="closeAddEmpModal()">取消</button>
+    </div>
+  </div>
+</div>
 
 <script>
   // ── Supabase ─────────────────────────────────────
@@ -490,6 +631,67 @@
     }).click();
     URL.revokeObjectURL(url);
   }
+
+  // ── Add employee modal ───────────────────────
+  function openAddEmpModal() {
+    document.getElementById('empSnInput').value   = '';
+    document.getElementById('empIdInput').value   = '';
+    document.getElementById('empNameInput').value = '';
+    document.getElementById('empDeptInput').value = '';
+    document.getElementById('btnAddEmpSubmit').disabled = false;
+    document.getElementById('btnAddEmpSubmit').textContent = '新增';
+    document.getElementById('addEmpModal').classList.add('open');
+    document.getElementById('empSnInput').focus();
+  }
+
+  function closeAddEmpModal() {
+    document.getElementById('addEmpModal').classList.remove('open');
+  }
+
+  async function submitAddEmp() {
+    const sn   = document.getElementById('empSnInput').value.trim();
+    const empId = document.getElementById('empIdInput').value.trim();
+    const name = document.getElementById('empNameInput').value.trim();
+    const dept = document.getElementById('empDeptInput').value.trim();
+
+    if (!sn)   { showToast('請輸入流水號', 'error'); document.getElementById('empSnInput').focus(); return; }
+    if (!name) { showToast('請輸入姓名',   'error'); document.getElementById('empNameInput').focus(); return; }
+
+    const btn = document.getElementById('btnAddEmpSubmit');
+    btn.disabled = true;
+    btn.textContent = '新增中…';
+
+    const { error } = await _supabase.from('employees').insert({
+      sn,
+      emp_id: empId || null,
+      name,
+      dept:   dept  || null
+    });
+
+    if (error) {
+      btn.disabled = false;
+      btn.textContent = '新增';
+      const msg = error.code === '23505' ? '流水號或工號已存在，請確認' : error.message;
+      showToast('新增失敗：' + msg, 'error');
+      return;
+    }
+
+    // Add to local list and re-render
+    allEmployees.push({ sn, empId: empId || '', name, dept: dept || '', wonPrize: null });
+    allEmployees.sort((a, b) => String(a.sn).localeCompare(String(b.sn), undefined, { numeric: true }));
+    const wonCount = allEmployees.filter(e => e.wonPrize).length;
+    document.getElementById('statTotal').textContent     = allEmployees.length;
+    document.getElementById('statWon').textContent       = wonCount;
+    document.getElementById('statRemaining').textContent = allEmployees.length - wonCount;
+    applyFilter();
+    closeAddEmpModal();
+    showToast(`已新增 ${name}（流水號 ${sn}）`, 'success');
+  }
+
+  // Close modal on backdrop click
+  document.getElementById('addEmpModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddEmpModal();
+  });
 
   // ── Toast ─────────────────────────────────────────
   let _toastTimer;
