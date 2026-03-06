@@ -589,7 +589,7 @@
                     <td>
                         <div class="winner-details">
                             ${r.sn    ? `<div class="staff-id">流水號 ${escHtml(r.sn)}</div>` : ''}
-                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> 工號 ${escHtml(String(r.empId).padStart(4, '0'))}</div>` : ''}
+                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> 工號 ${escHtml(/^\d/.test(String(r.empId)) ? String(r.empId).padStart(4, '0') : String(r.empId))}</div>` : ''}
                             <div class="name">${escHtml(r.name)}</div>
                             <div class="company"><i class="fas fa-building"></i> ${escHtml(r.dept)}</div>
                         </div>
