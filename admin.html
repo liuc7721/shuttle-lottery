@@ -328,6 +328,7 @@
       background: #f8f9ff;
     }
     .we-input:focus { border-color: var(--blue); background: #fff; }
+    .we-sn    { width: 70px; flex-shrink: 0; }
     .we-empid { width: 90px; flex-shrink: 0; }
     .we-name  { flex: 1.2; min-width: 0; }
     .we-dept  { flex: 1;   min-width: 0; }
@@ -365,6 +366,7 @@
       padding: 0 4px;
     }
     .wh { font-size: 11px; color: var(--muted); font-weight: 700; }
+    .wh.we-sn   { width: 70px; flex-shrink: 0; }
     .wh.we-empid { width: 90px; flex-shrink: 0; }
     .wh.we-name  { flex: 1.2; min-width: 0; }
     .wh.we-dept  { flex: 1;   min-width: 0; }
@@ -561,6 +563,7 @@
 </div>
 
 <datalist id="empList"></datalist>
+<datalist id="snList"></datalist>
 
 <!-- ── CSV Import modal ── -->
 <div class="modal-overlay" id="csvModal">
@@ -573,7 +576,7 @@
       <div class="modal-note">
         CSV 欄位格式（第一行為標題列，之後每行一筆得獎者）：
       </div>
-      <div class="csv-format-box">prize_rank,prize_name,emp_id,name,dept<br>1,頭獎,S0012,陳大文,研發部<br>2,二獎,S0034,林小芳,業務部</div>
+      <div class="csv-format-box">sn,prize_rank,prize_name,emp_id,name,dept<br>5001,1,頭獎,1,邱文賢,董事長室<br>5002,2,特獎,3,鄭彩華,董事長室</div>
       <div class="modal-note" style="margin-bottom: 10px;">
         匯入後將取代目前所有獎項與得獎者資料，請確認後再儲存到雲端。
       </div>
@@ -662,6 +665,7 @@
   let data;
 
   let _employeeMap = {};
+  let _snMap = {};
 
   async function initAdmin() {
     const fallback = JSON.parse(JSON.stringify(LOTTERY_DATA));
@@ -680,14 +684,21 @@
       ] = await Promise.all([
         _supabase.from('prizes').select('*').order('prize_rank', { ascending: true }),
         _supabase.from('winners').select('*').order('prize_rank', { ascending: true }),
-        _supabase.from('employees').select('emp_id,name,dept')
+        _supabase.from('employees').select('emp_id,name,dept,sn')
       ]);
 
       // Build employee autocomplete map + datalist
       if (!empErr && empRows) {
-        empRows.forEach(e => { _employeeMap[String(e.emp_id).toUpperCase()] = e; });
+        empRows.forEach(e => {
+          _employeeMap[String(e.emp_id).toUpperCase()] = e;
+          if (e.sn) _snMap[String(e.sn)] = e;
+        });
         document.getElementById('empList').innerHTML = empRows
           .map(e => `<option value="${escHtml(e.emp_id)}">${escHtml(e.name)} — ${escHtml(e.dept)}</option>`)
+          .join('');
+        document.getElementById('snList').innerHTML = empRows
+          .filter(e => e.sn)
+          .map(e => `<option value="${escHtml(e.sn)}">${escHtml(e.emp_id || '')} ${escHtml(e.name)}</option>`)
           .join('');
       }
 
@@ -698,7 +709,7 @@
         const winnerMap = new Map();
         (winnerRows || []).forEach(r => {
           if (!winnerMap.has(r.prize_rank)) winnerMap.set(r.prize_rank, []);
-          winnerMap.get(r.prize_rank).push({ empId: r.emp_id || '', name: r.name, dept: r.dept || '' });
+          winnerMap.get(r.prize_rank).push({ sn: r.sn || '', empId: r.emp_id || '', name: r.name, dept: r.dept || '' });
         });
         data.prizes = prizeRows.map(p => ({
           id:      p.prize_rank,
@@ -732,10 +743,11 @@
       const count = parseInt(card.querySelector('.ph-count-input')?.value) || 0;
       const rows  = card.querySelectorAll('.winner-row-edit');
       const winners = Array.from(rows).map(row => ({
+        sn:    row.querySelector('.we-sn').value.trim(),
         empId: row.querySelector('.we-empid').value.trim(),
         name:  row.querySelector('.we-name').value.trim(),
         dept:  row.querySelector('.we-dept').value.trim()
-      })).filter(w => w.empId || w.name);
+      })).filter(w => w.sn || w.empId || w.name);
       return { id: ci + 1, rank: ci + 1, name, value, count, winners };
     });
   }
@@ -765,6 +777,7 @@
       </div>
       <div class="prize-body">
         <div class="winner-headers">
+          <span class="wh we-sn">流水號</span>
           <span class="wh we-empid">員工編號</span>
           <span class="wh we-name">姓名</span>
           <span class="wh we-dept">部門</span>
@@ -779,7 +792,8 @@
   function buildWinnerRowHtml(w) {
     return `
       <div class="winner-row-edit">
-        <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="工號" list="empList">
+        <input class="we-input we-sn"    type="text" value="${escHtml(w.sn    || '')}" placeholder="流水號" list="snList">
+        <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="工號"   list="empList">
         <input class="we-input we-name"  type="text" value="${escHtml(w.name  || '')}" placeholder="姓名">
         <input class="we-input we-dept"  type="text" value="${escHtml(w.dept  || '')}" placeholder="部門">
         <button class="btn-del-winner" onclick="deleteWinner(this)" title="刪除">×</button>
@@ -846,7 +860,8 @@
         rows.push({
           prize_rank: prize.rank,
           prize_name: prize.name,
-          emp_id:     w.empId,
+          sn:         w.sn   || null,
+          emp_id:     w.empId || null,
           name:       w.name,
           dept:       w.dept
         });
@@ -927,16 +942,24 @@
     const prizeMap  = new Map(); // rank → { name, winners[] }
 
     for (const line of dataLines) {
-      // 支援含逗號的欄位（用雙引號包住）
       const cols = parseCsvLine(line);
       if (cols.length < 5) continue;
-      const [rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
-      const r = parseInt(rank);
-      if (!prizeMap.has(r)) {
-        prizeMap.set(r, { rank: r, name: prize_name, winners: [] });
+      // Support both old (prize_rank,prize_name,emp_id,name,dept)
+      // and new (sn,prize_rank,prize_name,emp_id,name,dept) formats
+      let sn, rank, prize_name, emp_id, name, dept;
+      if (cols.length >= 6 && isNaN(parseInt(cols[0])) === false && parseInt(cols[0]) > 1000) {
+        // New format: sn first
+        [sn, rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
+      } else {
+        // Old format: no sn
+        [rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
+        sn = '';
       }
-      if (emp_id || name) {
-        prizeMap.get(r).winners.push({ empId: emp_id, name, dept: dept || '' });
+      const r = parseInt(rank);
+      if (!r) continue;
+      if (!prizeMap.has(r)) prizeMap.set(r, { rank: r, name: prize_name, winners: [] });
+      if (sn || emp_id || name) {
+        prizeMap.get(r).winners.push({ sn: sn || '', empId: emp_id || '', name: name || '', dept: dept || '' });
       }
     }
 
@@ -995,10 +1018,10 @@
   // ━━━━━━━━━━━━━━━━━━ Export CSV ━━━━━━━━━━━━━━━━━━
   function exportAsCsv() {
     syncAll();
-    const lines = ['prize_rank,prize_name,emp_id,name,dept'];
+    const lines = ['sn,prize_rank,prize_name,emp_id,name,dept'];
     data.prizes.forEach(prize => {
       prize.winners.forEach(w => {
-        lines.push([prize.rank, prize.name, w.empId, w.name, w.dept]
+        lines.push([w.sn || '', prize.rank, prize.name, w.empId, w.name, w.dept]
           .map(v => String(v).includes(',') ? `"${v}"` : v).join(','));
       });
     });
@@ -1013,15 +1036,27 @@
     if (e.target === this) closeCsvModal();
   });
 
-  // Employee autocomplete — auto-fill name & dept when emp_id is selected
+  // Autocomplete — SN fills all fields; emp_id fills name+dept+sn
   document.getElementById('prizeList').addEventListener('input', function(e) {
-    if (!e.target.classList.contains('we-empid') || !e.target.value.trim()) return;
-    const emp = _employeeMap[e.target.value.trim().toUpperCase()];
-    if (!emp) return;
     const row = e.target.closest('.winner-row-edit');
     if (!row) return;
-    row.querySelector('.we-name').value = emp.name;
-    row.querySelector('.we-dept').value = emp.dept;
+
+    if (e.target.classList.contains('we-sn') && e.target.value.trim()) {
+      const emp = _snMap[e.target.value.trim()];
+      if (!emp) return;
+      row.querySelector('.we-empid').value = emp.emp_id || '';
+      row.querySelector('.we-name').value  = emp.name;
+      row.querySelector('.we-dept').value  = emp.dept || '';
+      return;
+    }
+
+    if (e.target.classList.contains('we-empid') && e.target.value.trim()) {
+      const emp = _employeeMap[e.target.value.trim().toUpperCase()];
+      if (!emp) return;
+      row.querySelector('.we-name').value  = emp.name;
+      row.querySelector('.we-dept').value  = emp.dept || '';
+      if (emp.sn && !row.querySelector('.we-sn').value) row.querySelector('.we-sn').value = emp.sn;
+    }
   });
 
   // ── Toast ────────────────────────────────────

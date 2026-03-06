@@ -416,14 +416,15 @@
             <div class="search-tips">
                 <p>
                     <i class="fas fa-lightbulb"></i><strong>查詢提示：</strong><br>
-                    • 按員工編號查詢：請輸入員工編號，如：<strong>S0012</strong><br>
+                    • 按流水號查詢：請輸入流水號，如：<strong>5001</strong><br>
+                    • 按員工編號查詢：請輸入員工編號，如：<strong>1234</strong><br>
                     • 按姓名查詢：請輸入姓名，如：<strong>陳大文</strong><br>
                     • 按獎項查詢：請輸入獎項名稱，如：<strong>頭獎</strong>
                 </p>
             </div>
 
             <div class="search-box">
-                <input id="searchInput" type="text" placeholder="請輸入員工編號、姓名或獎項名稱..."
+                <input id="searchInput" type="text" placeholder="請輸入流水號、員工編號、姓名或獎項名稱..."
                     autocomplete="off" autocorrect="off" spellcheck="false">
                 <button class="btn-search" onclick="doSearch()">
                     <i class="fas fa-search"></i>
@@ -497,9 +498,10 @@
                         prizeName:  r.prize_name,
                         prizeRank:  r.prize_rank,
                         prizeValue: prizeValueMap[r.prize_rank] || 0,
+                        sn:         r.sn    || '',
                         empId:      r.emp_id || '',
                         name:       r.name,
-                        dept:       r.dept || ''
+                        dept:       r.dept   || ''
                     }));
                     renderTable(allRows);
                     return;
@@ -514,9 +516,10 @@
                             prizeName:  prize.name,
                             prizeRank:  prize.rank,
                             prizeValue: prize.value || 0,
+                            sn:         w.sn    || '',
                             empId:      w.empId || '',
                             name:       w.name,
-                            dept:       w.dept || ''
+                            dept:       w.dept  || ''
                         });
                     });
                 });
@@ -537,10 +540,11 @@
             if (!q) { renderTable(allRows); return; }
             const qu = q.toUpperCase();
             const filtered = allRows.filter(r =>
+                (r.sn    || '').toUpperCase().indexOf(qu) > -1 ||
                 (r.empId || '').toUpperCase().indexOf(qu) > -1 ||
                 r.name.toUpperCase().indexOf(qu) > -1 ||
                 r.prizeName.toUpperCase().indexOf(qu) > -1 ||
-                (r.dept || '').toUpperCase().indexOf(qu) > -1
+                (r.dept  || '').toUpperCase().indexOf(qu) > -1
             );
             renderTable(filtered);
         }
@@ -580,6 +584,7 @@
                     </td>
                     <td>
                         <div class="winner-details">
+                            ${r.sn    ? `<div class="staff-id"><i class="fas fa-ticket-alt"></i> ${escHtml(r.sn)}</div>` : ''}
                             ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> ${escHtml(r.empId)}</div>` : ''}
                             <div class="name">${escHtml(r.name)}</div>
                             <div class="company"><i class="fas fa-building"></i> ${escHtml(r.dept)}</div>
