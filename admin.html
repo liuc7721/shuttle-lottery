@@ -394,18 +394,6 @@
     }
     .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
     .modal-note { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
-    .code-area {
-      width: 100%;
-      height: 220px;
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      resize: vertical;
-      background: #f8f9ff;
-      outline: none;
-    }
     .modal-footer {
       padding: 14px 20px;
       border-top: 1px solid var(--border);
@@ -515,7 +503,7 @@
     <div class="top-bar-title">尾牙抽獎 · 後台管理</div>
     <button class="btn-save" id="btnSave" onclick="saveToSupabase()">儲存到雲端</button>
     <button class="btn-csv" onclick="openCsvModal()">匯入 CSV</button>
-    <button class="btn-export" onclick="openExport()">匯出備份</button>
+    <button class="btn-export" onclick="exportAsCsv()">匯出 CSV</button>
     <button class="btn-logout" onclick="doLogout()">登出</button>
   </div>
 
@@ -537,26 +525,6 @@
     <div id="prizeList"></div>
 
     <button class="btn-add-prize" onclick="addPrize()">＋ 新增獎項</button>
-  </div>
-</div>
-
-<!-- ── Export modal ── -->
-<div class="modal-overlay" id="exportModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">匯出備份 winners.js</div>
-      <button class="modal-close" onclick="closeExport()">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-note">
-        此為本機備份用途。日常更新請使用「儲存到雲端」按鈕，資料將直接同步至 Supabase。
-      </div>
-      <textarea class="code-area" id="exportTextarea" readonly></textarea>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-download" onclick="downloadFile()">下載 winners.js</button>
-      <button class="btn-copy" id="btnCopy" onclick="copyCode()">複製內容</button>
-    </div>
   </div>
 </div>
 
@@ -659,10 +627,36 @@
   // ── State ────────────────────────────────────
   let data;
 
-  function initAdmin() {
-    data = JSON.parse(JSON.stringify(LOTTERY_DATA));
+  async function initAdmin() {
+    const fallback = JSON.parse(JSON.stringify(LOTTERY_DATA));
+    data = { year: fallback.year, event: fallback.event, prizes: [] };
     document.getElementById('fYear').value  = data.year;
     document.getElementById('fEvent').value = data.event;
+
+    if (_supabase) {
+      document.getElementById('prizeList').innerHTML =
+        '<div style="text-align:center;padding:40px;color:var(--muted)">載入中…</div>';
+      const { data: rows, error } = await _supabase
+        .from('winners').select('*').order('prize_rank', { ascending: true });
+      if (!error && rows) {
+        if (rows.length > 0) {
+          const prizeMap = new Map();
+          rows.forEach(r => {
+            if (!prizeMap.has(r.prize_rank))
+              prizeMap.set(r.prize_rank, { id: r.prize_rank, rank: r.prize_rank, name: r.prize_name, winners: [] });
+            prizeMap.get(r.prize_rank).winners.push({ empId: r.emp_id, name: r.name, dept: r.dept });
+          });
+          data.prizes = Array.from(prizeMap.values()).sort((a, b) => a.rank - b.rank);
+        }
+        // rows.length === 0 → data.prizes stays [] (empty panel)
+      } else {
+        data.prizes = fallback.prizes;
+        showToast('雲端讀取失敗，顯示本機備份資料', 'error');
+      }
+    } else {
+      data.prizes = fallback.prizes;
+    }
+
     renderPrizes();
   }
 
@@ -879,7 +873,7 @@
 
   function doImportCsv() {
     if (!_csvParsed) return;
-    syncAll();
+    syncMeta();
     data.prizes = _csvParsed.map((p, i) => ({
       id:      i + 1,
       rank:    p.rank,
@@ -906,46 +900,23 @@
     }
   });
 
-  // ━━━━━━━━━━━━━━━━━━ Export (backup) ━━━━━━━━━━━━━━━━━━
-  function buildFileContent() {
+  // ━━━━━━━━━━━━━━━━━━ Export CSV ━━━━━━━━━━━━━━━━━━
+  function exportAsCsv() {
     syncAll();
-    const d = {
-      year:   parseInt(document.getElementById('fYear').value)  || data.year,
-      event:  document.getElementById('fEvent').value.trim()    || data.event,
-      prizes: data.prizes
-    };
-    return `// 五崧科技 尾牙抽獎資料\n// 修改此檔案以更新得獎名單，存檔後重新整理網頁即可生效\nconst LOTTERY_DATA = ${JSON.stringify(d, null, 2)};\n`;
-  }
-
-  function openExport() {
-    document.getElementById('exportTextarea').value = buildFileContent();
-    document.getElementById('exportModal').classList.add('open');
-    document.getElementById('btnCopy').textContent = '複製內容';
-  }
-  function closeExport() {
-    document.getElementById('exportModal').classList.remove('open');
-  }
-  function downloadFile() {
-    const content = document.getElementById('exportTextarea').value;
-    const blob = new Blob([content], { type: 'text/javascript' });
+    const lines = ['prize_rank,prize_name,emp_id,name,dept'];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        lines.push([prize.rank, prize.name, w.empId, w.name, w.dept]
+          .map(v => String(v).includes(',') ? `"${v}"` : v).join(','));
+      });
+    });
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), { href: url, download: 'winners.js' });
-    a.click();
+    Object.assign(document.createElement('a'), { href: url, download: 'winners.csv' }).click();
     URL.revokeObjectURL(url);
   }
-  function copyCode() {
-    const ta = document.getElementById('exportTextarea');
-    ta.select();
-    document.execCommand('copy');
-    const btn = document.getElementById('btnCopy');
-    btn.textContent = '已複製 ✓';
-    setTimeout(() => { btn.textContent = '複製內容'; }, 2000);
-  }
 
-  // click outside modals to close
-  document.getElementById('exportModal').addEventListener('click', function(e) {
-    if (e.target === this) closeExport();
-  });
+  // click outside modal to close
   document.getElementById('csvModal').addEventListener('click', function(e) {
     if (e.target === this) closeCsvModal();
   });
