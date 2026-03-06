@@ -289,7 +289,7 @@
       flex-shrink: 0;
     }
     .ph-value-input:focus, .ph-count-input:focus { outline: none; border-color: var(--blue); }
-    .ph-count-input[readonly] {
+    .ph-count-input[readonly], .ph-value-input[readonly] {
       background: #f0f2f8;
       color: var(--muted);
       cursor: not-allowed;
@@ -790,7 +790,7 @@
     card.innerHTML = `
       <div class="prize-card-header">
         <input class="ph-name-input"  type="text"   value="${escHtml(prize.name)}"        placeholder="獎項名稱">
-        <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0">
+        <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0" ${prize.protected ? 'readonly' : ''}>
         <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0" ${prize.protected ? 'readonly' : ''}>
         <span class="winner-slot-badge">${filledCount}/${prize.count ?? 0} 人</span>
         ${actionBtn}
@@ -854,6 +854,7 @@
   }
 
   function deleteWinner(btn) {
+    if (!confirm('確定要刪除這筆得獎者嗎？')) return;
     const prizeCard = btn.closest('.prize-card');
     btn.closest('.winner-row-edit').remove();
     updateSlotBadge(prizeCard);
