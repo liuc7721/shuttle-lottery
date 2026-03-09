@@ -677,7 +677,7 @@
   // 取得雜湊值：在瀏覽器 Console 貼上：
   //   sha256('你的密碼').then(h => console.log(h))
   // ─────────────────────────────────────────────
-  const ADMIN_PASSWORD_HASH = '27c73ad39fa34f40f8579f338b96799779dd140a150b3d14856bde77fd9e5623';
+  const ADMIN_PASSWORD_HASH = '23141cd8cfe65e547022a463ddc64e3f210bd8f7ea5a1de07d1df4c0525373b0';
 
   async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
