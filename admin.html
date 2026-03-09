@@ -187,6 +187,29 @@
       padding: 24px 16px 60px;
     }
 
+    /* ── Tip card ── */
+    .tip-card {
+      background: #eef2ff;
+      border: 1.5px solid #c5d0f5;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .tip-list {
+      margin: 8px 0 0 0;
+      padding-left: 18px;
+      list-style: disc;
+    }
+    .tip-list li {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .tip-list li strong {
+      color: var(--blue);
+      font-weight: 700;
+    }
+
     /* ── Event info card ── */
     .info-card {
       background: var(--card);
@@ -289,7 +312,7 @@
       flex-shrink: 0;
     }
     .ph-value-input:focus, .ph-count-input:focus { outline: none; border-color: var(--blue); }
-    .ph-count-input[readonly] {
+    .ph-count-input[readonly], .ph-value-input[readonly] {
       background: #f0f2f8;
       color: var(--muted);
       cursor: not-allowed;
@@ -342,6 +365,8 @@
       background: #f8f9ff;
     }
     .we-input:focus { border-color: var(--blue); background: #fff; }
+    .we-input[readonly] { background: #f0f2f8; color: var(--muted); cursor: not-allowed; border-style: dashed; }
+    .we-input[readonly]:focus { border-color: var(--border); background: #f0f2f8; box-shadow: none; }
     .we-sn    { width: 90px; flex-shrink: 0; }
     .we-empid { width: 80px; flex-shrink: 0; }
     .we-name  { flex: 1;   min-width: 0; }
@@ -523,6 +548,16 @@
       cursor: pointer;
     }
     .btn-import:disabled { opacity: .5; cursor: default; }
+
+    /* ── Auto-save status ── */
+    #autoSaveStatus {
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      min-width: 64px;
+      transition: opacity .5s;
+      white-space: nowrap;
+    }
+    #autoSaveStatus.fade { opacity: 0; }
   </style>
 </head>
 <body>
@@ -550,6 +585,9 @@
   <div class="top-bar">
     <div class="top-bar-title">尾牙抽獎 · 後台管理</div>
     <button class="btn-save" id="btnSave" onclick="saveToSupabase()">儲存到雲端</button>
+    <span id="autoSaveStatus"></span>
+    <button class="btn-csv" style="padding: 8px 20px;" onclick="window.open('https://liuc7721.github.io/shuttle-lottery','_blank')">尾牙抽獎首頁</button>
+    <button class="btn-csv" onclick="window.location.href='eligible.html'">可抽獎名單</button>
     <button class="btn-csv" onclick="openCsvModal()">匯入 CSV</button>
     <button class="btn-export" onclick="exportAsCsv()">匯出 CSV</button>
     <button class="btn-logout" onclick="doLogout()">登出</button>
@@ -567,6 +605,16 @@
         <label>活動名稱</label>
         <input class="field" id="fEvent" type="text" placeholder="五崧科技 尾牙晚宴">
       </div>
+    </div>
+
+    <!-- Tip card -->
+    <div class="tip-card">
+      <div class="section-label">操作提示</div>
+      <ul class="tip-list">
+        <li>在得獎欄位輸入<strong>流水號</strong>，系統會自動帶入工號、姓名、部門，帶入後欄位鎖定以防手誤</li>
+        <li>也可輸入<strong>工號</strong>反查流水號與其他資料</li>
+        <li>新增或刪除得獎者後，系統會<strong>自動儲存</strong>到雲端，無需手動按「儲存到雲端」</li>
+      </ul>
     </div>
 
     <!-- Prize list -->
@@ -636,6 +684,20 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  // ── State ────────────────────────────────────
+  let data;
+  let _employeeMap = {};
+  let _snMap = {};
+  let _autoSaveTimer = null;
+  let _dataLoaded    = false;   // guard: prevent auto-save before initAdmin() renders
+
+  // ── Auto-login if session still active ───────
+  if (sessionStorage.getItem('adminAuth')) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    initAdmin();
+  }
+
   // ── Auth ─────────────────────────────────────
   async function doLogin() {
     const pw  = document.getElementById('pwInput').value;
@@ -656,6 +718,7 @@
     btn.textContent = '進入管理介面';
 
     if (ok) {
+      sessionStorage.setItem('adminAuth', '1');
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('adminApp').style.display = 'block';
       initAdmin();
@@ -669,17 +732,12 @@
     if (e.key === 'Enter') doLogin();
   });
   function doLogout() {
+    sessionStorage.removeItem('adminAuth');
     document.getElementById('adminApp').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('pwInput').value = '';
     document.getElementById('loginError').textContent = '';
   }
-
-  // ── State ────────────────────────────────────
-  let data;
-
-  let _employeeMap = {};
-  let _snMap = {};
 
   async function initAdmin() {
     const fallback = JSON.parse(JSON.stringify(LOTTERY_DATA));
@@ -741,6 +799,7 @@
     }
 
     renderPrizes();
+    _dataLoaded = true;
   }
 
   // ── Sync fields → data ───────────────────────
@@ -790,7 +849,7 @@
     card.innerHTML = `
       <div class="prize-card-header">
         <input class="ph-name-input"  type="text"   value="${escHtml(prize.name)}"        placeholder="獎項名稱">
-        <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0">
+        <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0" ${prize.protected ? 'readonly' : ''}>
         <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0" ${prize.protected ? 'readonly' : ''}>
         <span class="winner-slot-badge">${filledCount}/${prize.count ?? 0} 人</span>
         ${actionBtn}
@@ -854,9 +913,11 @@
   }
 
   function deleteWinner(btn) {
+    if (!confirm('確定要刪除這筆得獎者嗎？')) return;
     const prizeCard = btn.closest('.prize-card');
     btn.closest('.winner-row-edit').remove();
     updateSlotBadge(prizeCard);
+    scheduleAutoSave();
   }
 
   function updateSlotBadge(prizeCard) {
@@ -926,6 +987,61 @@
     btn.disabled = false;
     btn.textContent = '儲存到雲端';
     showToast('已成功儲存到 Supabase！', 'success');
+  }
+
+  // ━━━━━━━━━━━━━━━━━━ Auto-Save ━━━━━━━━━━━━━━━━━━
+  function scheduleAutoSave() {
+    if (!_dataLoaded) return;   // initAdmin() not done yet, do not overwrite DB
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => autoSave(), 800);
+  }
+
+  let _autoSaveFadeTimer;
+  async function autoSave() {
+    if (!_supabase) return;
+    syncAll();
+
+    const statusEl = document.getElementById('autoSaveStatus');
+    statusEl.className = '';
+    statusEl.textContent = '同步中…';
+
+    const rows = [];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        rows.push({
+          prize_rank: prize.rank,
+          prize_name: prize.name,
+          sn:         w.sn    || null,
+          emp_id:     w.empId || null,
+          name:       w.name,
+          dept:       w.dept
+        });
+      });
+    });
+
+    const { error: delErr } = await _supabase.from('winners').delete().gte('id', 0);
+    if (delErr) {
+      statusEl.textContent = '⚠ 同步失敗';
+      showToast('自動同步失敗：' + delErr.message, 'error');
+      return;
+    }
+
+    if (rows.length > 0) {
+      const { error: insErr } = await _supabase.from('winners').insert(rows);
+      if (insErr) {
+        statusEl.textContent = '⚠ 同步失敗';
+        showToast('自動同步失敗：' + insErr.message, 'error');
+        return;
+      }
+    }
+
+    // prizes 表（獎項結構）不在 auto-save 範圍內，由手動「儲存到雲端」負責
+    statusEl.textContent = '✓ 已同步';
+    clearTimeout(_autoSaveFadeTimer);
+    _autoSaveFadeTimer = setTimeout(() => {
+      statusEl.classList.add('fade');
+      setTimeout(() => { statusEl.textContent = ''; statusEl.className = ''; }, 500);
+    }, 2000);
   }
 
   // ━━━━━━━━━━━━━━━━━━ CSV Import ━━━━━━━━━━━━━━━━━━
@@ -1055,26 +1171,73 @@
   });
 
   // Autocomplete — SN fills all fields; emp_id fills name+dept+sn
+  // After autocomplete, filled fields are locked (readonly) to prevent accidental edits.
+  // Clearing the SN or emp_id field unlocks the dependent fields.
+  function lockFields(row, selectors) {
+    selectors.forEach(sel => {
+      const el = row.querySelector(sel);
+      if (el) el.setAttribute('readonly', '');
+    });
+  }
+  function unlockFields(row, selectors) {
+    selectors.forEach(sel => {
+      const el = row.querySelector(sel);
+      if (el) el.removeAttribute('readonly');
+    });
+  }
+
   document.getElementById('prizeList').addEventListener('input', function(e) {
     const row = e.target.closest('.winner-row-edit');
     if (!row) return;
 
-    if (e.target.classList.contains('we-sn') && e.target.value.trim()) {
-      const emp = _snMap[e.target.value.trim()];
-      if (!emp) return;
-      row.querySelector('.we-empid').value = emp.emp_id || '';
-      row.querySelector('.we-name').value  = emp.name;
-      row.querySelector('.we-dept').value  = emp.dept || '';
+    if (e.target.classList.contains('we-sn')) {
+      const val = e.target.value.trim();
+      if (!val) {
+        // SN cleared → unlock dependent fields and clear them
+        unlockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+        row.querySelector('.we-empid').value = '';
+        row.querySelector('.we-name').value  = '';
+        row.querySelector('.we-dept').value  = '';
+        return;
+      }
+      const emp = _snMap[val];
+      if (emp) {
+        row.querySelector('.we-empid').value = emp.emp_id || '';
+        row.querySelector('.we-name').value  = emp.name;
+        row.querySelector('.we-dept').value  = emp.dept || '';
+        lockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+      } else {
+        unlockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+      }
       return;
     }
 
-    if (e.target.classList.contains('we-empid') && e.target.value.trim()) {
-      const emp = _employeeMap[e.target.value.trim().toUpperCase()];
-      if (!emp) return;
-      row.querySelector('.we-name').value  = emp.name;
-      row.querySelector('.we-dept').value  = emp.dept || '';
-      if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
+    if (e.target.classList.contains('we-empid')) {
+      const val = e.target.value.trim();
+      if (!val) {
+        unlockFields(row, ['.we-sn', '.we-name', '.we-dept']);
+        return;
+      }
+      const emp = _employeeMap[val.toUpperCase()];
+      if (emp) {
+        row.querySelector('.we-name').value  = emp.name;
+        row.querySelector('.we-dept').value  = emp.dept || '';
+        if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
+        lockFields(row, ['.we-name', '.we-dept', ...(emp.sn ? ['.we-sn'] : [])]);
+      } else {
+        unlockFields(row, ['.we-sn', '.we-name', '.we-dept']);
+      }
     }
+  });
+
+  // Auto-save on winner row blur
+  document.getElementById('prizeList').addEventListener('focusout', function(e) {
+    const row = e.target.closest('.winner-row-edit');
+    if (!row) return;
+    const hasSn   = row.querySelector('.we-sn').value.trim();
+    const hasName = row.querySelector('.we-name').value.trim();
+    if (!hasSn && !hasName) return; // empty row, skip
+    scheduleAutoSave();
   });
 
   // ── Toast ────────────────────────────────────

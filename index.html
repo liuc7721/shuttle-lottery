@@ -59,7 +59,6 @@
         .header-inner {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 20px;
         }
 
@@ -69,8 +68,14 @@
             flex-shrink: 0;
         }
 
+        .header-spacer {
+            flex-shrink: 0;
+            visibility: hidden;
+        }
+
         .header-text {
-            text-align: left;
+            flex: 1;
+            text-align: center;
         }
 
             .header-card h1 {
@@ -304,6 +309,7 @@
             padding: 6px 12px;
             border-radius: 6px;
             display: inline-block;
+            word-break: keep-all;
         }
 
         .prize-value {
@@ -367,6 +373,10 @@
                 gap: 12px;
             }
 
+            .header-spacer {
+                display: none;
+            }
+
             .header-text {
                 text-align: center;
             }
@@ -395,7 +405,17 @@
 
             .winner-table thead th,
             .winner-table tbody td {
-                padding: 12px 15px;
+                padding: 10px 12px;
+            }
+
+            .winner-table th:first-child,
+            .winner-table td:first-child {
+                width: 40% !important;
+            }
+
+            .prize-name {
+                font-size: 14px;
+                padding: 5px 8px;
             }
         }
     </style>
@@ -404,11 +424,12 @@
     <div class="main-container">
         <div class="header-card">
             <div class="header-inner">
-                <img src="shuttle.jpg" alt="Shuttle" class="header-logo">
+                <img src="shuttle-2.png" alt="Shuttle" class="header-logo">
                 <div class="header-text">
-                    <h1><i class="fas fa-trophy"></i> 中獎查詢 Lucky Draw Winner List</h1>
-                    <p id="eventSubtitle" class="event-subtitle"></p>
+                    <h1><i class="fas fa-trophy"></i> 中獎查詢 Good Luck</h1>
+                    <p class="event-subtitle">五崧捷運2026年度春酒</p>
                 </div>
+                <div class="header-spacer"><img src="shuttle-2.png" alt="" class="header-logo"></div>
             </div>
         </div>
 
@@ -461,12 +482,6 @@
             : null;
 
         let allRows = [];
-
-        // 顯示活動年度與名稱
-        if (typeof LOTTERY_DATA !== 'undefined') {
-            document.getElementById('eventSubtitle').textContent =
-                LOTTERY_DATA.year + ' · ' + LOTTERY_DATA.event;
-        }
 
         // ── Init ─────────────────────────────────────────────────────
         document.getElementById('searchInput').addEventListener('input', doSearch);
@@ -584,8 +599,8 @@
                     </td>
                     <td>
                         <div class="winner-details">
-                            ${r.sn    ? `<div class="staff-id"><i class="fas fa-ticket-alt"></i> ${escHtml(r.sn)}</div>` : ''}
-                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> ${escHtml(r.empId)}</div>` : ''}
+                            ${r.sn    ? `<div class="staff-id">流水號 ${escHtml(r.sn)}</div>` : ''}
+                            ${r.empId ? `<div class="staff-id"><i class="fas fa-id-badge"></i> 工號 ${escHtml(/^\d/.test(String(r.empId)) ? String(r.empId).padStart(4, '0') : String(r.empId))}</div>` : ''}
                             <div class="name">${escHtml(r.name)}</div>
                             <div class="company"><i class="fas fa-building"></i> ${escHtml(r.dept)}</div>
                         </div>

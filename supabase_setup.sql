@@ -28,7 +28,8 @@ CREATE TABLE employees (
 );
 
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public read employees" ON employees FOR SELECT USING (true);
+CREATE POLICY "public read employees"  ON employees FOR SELECT USING (true);
+CREATE POLICY "allow write employees"  ON employees FOR ALL    USING (true) WITH CHECK (true);
 
 
 -- ── Step 4: 插入 7 個獎項（來自摸彩獎項清冊）────────────────────────
@@ -166,7 +167,7 @@ INSERT INTO employees (emp_id, name, dept) VALUES
 ('3206','吳珮瑜','台中財務課'),
 ('3775','梁雲綉','台中財務課'),
 ('2199','莊翎芬','台中財務課'),
-('2959','林奕勳','中區關務課'),
+('2959','林奕勝','中區關務課'),
 ('3768','徐湘嵐','台中客服調度'),
 ('4092','張瑋婷','台中客服調度'),
 ('4322','楊奕軒','中區關務課'),
