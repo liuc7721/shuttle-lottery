@@ -850,7 +850,7 @@
       <div class="prize-card-header">
         <input class="ph-name-input"  type="text"   value="${escHtml(prize.name)}"        placeholder="獎項名稱">
         <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0" ${prize.protected ? 'readonly' : ''}>
-        <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0" ${prize.protected ? 'readonly' : ''}>
+        <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0">
         <span class="winner-slot-badge">${filledCount}/${prize.count ?? 0} 人</span>
         ${actionBtn}
       </div>
