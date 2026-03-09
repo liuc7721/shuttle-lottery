@@ -347,11 +347,22 @@
       flex-shrink: 0;
     }
     .prize-body { padding: 12px 16px; }
+    .winners-list { counter-reset: winner-counter; }
     .winner-row-edit {
       display: flex;
       gap: 8px;
       margin-bottom: 8px;
       align-items: center;
+    }
+    .winner-row-edit::before {
+      content: counter(winner-counter);
+      counter-increment: winner-counter;
+      width: 22px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
     }
     .we-input {
       height: 36px;
@@ -405,6 +416,7 @@
       padding: 0 4px;
     }
     .wh { font-size: 11px; color: var(--muted); font-weight: 700; }
+    .wh-num  { width: 22px; flex-shrink: 0; text-align: center; }
     .wh.we-sn   { width: 90px; flex-shrink: 0; }
     .wh.we-empid { width: 80px; flex-shrink: 0; }
     .wh.we-name  { flex: 1;   min-width: 0; }
@@ -856,6 +868,7 @@
       </div>
       <div class="prize-body">
         <div class="winner-headers">
+          <span class="wh wh-num">#</span>
           <span class="wh we-sn">流水號</span>
           <span class="wh we-empid">員工編號</span>
           <span class="wh we-name">姓名</span>
