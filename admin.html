@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>後台管理 - 五崧科技尾牙</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:       #003399;
+      --blue-dark:  #002270;
+      --blue-light: #1a4dcc;
+      --gold:       #D4AF37;
+      --green:      #0a7a3e;
+      --green-bg:   #edfaf3;
+      --green-bdr:  #a0dfc0;
+      --text:       #1a1a2e;
+      --muted:      #5a6070;
+      --bg:         #f0f4ff;
+      --card:       #ffffff;
+      --border:     #d0d9f0;
+      --danger:     #e02020;
+      --danger-bg:  #fff0f0;
+      --success:    #0a7a3e;
+      --success-bg: #edfaf3;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━ Login screen ━━━━━━━━━━━━━━━━━━ */
+    #loginScreen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,51,153,.18);
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .login-icon { font-size: 48px; margin-bottom: 12px; }
+    .login-title { font-size: 20px; font-weight: 900; color: var(--blue); margin-bottom: 4px; }
+    .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .login-input {
+      width: 100%;
+      height: 50px;
+      padding: 0 16px;
+      font-size: 16px;
+      font-family: inherit;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      text-align: center;
+      letter-spacing: 3px;
+      margin-bottom: 14px;
+      transition: border-color .2s;
+    }
+    .login-input:focus { border-color: var(--blue); }
+    .btn-login {
+      width: 100%;
+      height: 50px;
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue-light));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-login:hover { opacity: .88; }
+    .login-error {
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 13px;
+      min-height: 18px;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━ Admin app ━━━━━━━━━━━━━━━━━━ */
+    #adminApp { display: none; }
+
+    .top-bar {
+      background: linear-gradient(90deg, var(--blue-dark), var(--blue));
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,51,153,.3);
+    }
+    .top-bar-title { font-size: 16px; font-weight: 700; color: #fff; flex: 1; min-width: 120px; }
+    .btn-save {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1.5px solid var(--green-bdr);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-save:hover { opacity: .85; }
+    .btn-save:disabled { opacity: .5; cursor: default; }
+    .btn-csv {
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-csv:hover { background: rgba(255,255,255,.25); }
+    .btn-export {
+      background: var(--gold);
+      color: var(--blue-dark);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-export:hover { opacity: .85; }
+    .btn-logout {
+      background: rgba(255,255,255,.18);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform .3s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
+
+    /* ── Main wrapper ── */
+    .admin-main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    /* ── Tip card ── */
+    .tip-card {
+      background: #eef2ff;
+      border: 1.5px solid #c5d0f5;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .tip-list {
+      margin: 8px 0 0 0;
+      padding-left: 18px;
+      list-style: disc;
+    }
+    .tip-list li {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .tip-list li strong {
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    /* ── Event info card ── */
+    .info-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-row label { font-size: 13px; color: var(--muted); width: 64px; flex-shrink: 0; }
+    .field {
+      flex: 1;
+      height: 38px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field:focus { border-color: var(--blue); }
+
+    /* ── Prize cards ── */
+    .prize-card {
+      background: var(--card);
+      border-radius: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,51,153,.08);
+      overflow: hidden;
+    }
+    .prize-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: #f5f7ff;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .prize-card-header:hover { background: #ecf0ff; }
+    .ph-icon-input {
+      width: 44px;
+      height: 34px;
+      text-align: center;
+      font-size: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      font-family: inherit;
+    }
+    .ph-name-input {
+      flex: 1;
+      height: 34px;
+      padding: 0 10px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      color: var(--blue);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .ph-name-input:focus { outline: none; border-color: var(--blue); }
+    .ph-value-input {
+      width: 110px;
+      height: 34px;
+      padding: 0 8px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .ph-count-input {
+      width: 64px;
+      height: 34px;
+      padding: 0 8px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .ph-value-input:focus, .ph-count-input:focus { outline: none; border-color: var(--blue); }
+    .ph-count-input[readonly], .ph-value-input[readonly] {
+      background: #f0f2f8;
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+    .winner-slot-badge {
+      font-size: 11px;
+      background: #e8eeff;
+      color: #336;
+      border-radius: 10px;
+      padding: 3px 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .btn-del-prize {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid #f5c0c0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .prize-locked-label {
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .prize-body { padding: 12px 16px; }
+    .winners-list { counter-reset: winner-counter; }
+    .winner-row-edit {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .winner-row-edit::before {
+      content: counter(winner-counter);
+      counter-increment: winner-counter;
+      width: 22px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .we-input {
+      height: 36px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      outline: none;
+      transition: border-color .2s;
+      background: #f8f9ff;
+    }
+    .we-input:focus { border-color: var(--blue); background: #fff; }
+    .we-input[readonly] { background: #f0f2f8; color: var(--muted); cursor: not-allowed; border-style: dashed; }
+    .we-input[readonly]:focus { border-color: var(--border); background: #f0f2f8; box-shadow: none; }
+    .we-sn    { width: 90px; flex-shrink: 0; }
+    .we-empid { width: 80px; flex-shrink: 0; }
+    .we-name  { flex: 1;   min-width: 0; }
+    .we-dept  { flex: 1;   min-width: 0; }
+    .btn-del-winner {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      flex-shrink: 0;
+      opacity: .7;
+      transition: opacity .15s;
+    }
+    .btn-del-winner:hover { opacity: 1; }
+    .btn-add-winner {
+      width: 100%;
+      height: 34px;
+      background: none;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 4px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-add-winner:hover { border-color: var(--blue); color: var(--blue); }
+    .winner-headers {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+      padding: 0 4px;
+    }
+    .wh { font-size: 11px; color: var(--muted); font-weight: 700; }
+    .wh-num  { width: 22px; flex-shrink: 0; text-align: center; }
+    .wh.we-sn   { width: 90px; flex-shrink: 0; }
+    .wh.we-empid { width: 80px; flex-shrink: 0; }
+    .wh.we-name  { flex: 1;   min-width: 0; }
+    .wh.we-dept  { flex: 1;   min-width: 0; }
+    .wh-del      { width: 34px; flex-shrink: 0; }
+
+    /* ── Add prize ── */
+    .btn-add-prize {
+      width: 100%;
+      height: 48px;
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      font-size: 15px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 24px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-add-prize:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ━━━━━━━━━━━━━━━━━━ Modals ━━━━━━━━━━━━━━━━━━ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .modal-note { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-download {
+      flex: 1;
+      height: 42px;
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue-light));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-copy {
+      flex: 1;
+      height: 42px;
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1.5px solid #a0dfc0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* ── CSV modal specific ── */
+    .csv-format-box {
+      background: #f5f7ff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .csv-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 10px;
+    }
+    .csv-upload-area:hover { border-color: var(--blue); background: #f0f4ff; }
+    .csv-upload-area input { display: none; }
+    .csv-upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .csv-upload-label { font-size: 14px; font-weight: 600; color: var(--blue); }
+    .csv-upload-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .csv-preview {
+      background: #f8f9ff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+    }
+    .btn-import {
+      flex: 1;
+      height: 42px;
+      background: linear-gradient(135deg, var(--green), #15a357);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-import:disabled { opacity: .5; cursor: default; }
+
+    /* ── Auto-save status ── */
+    #autoSaveStatus {
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      min-width: 64px;
+      transition: opacity .5s;
+      white-space: nowrap;
+    }
+    #autoSaveStatus.fade { opacity: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ── Login screen ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">後台管理</div>
+    <div class="login-sub">五崧科技尾牙 · 抽獎系統</div>
+    <input
+      type="password"
+      class="login-input"
+      id="pwInput"
+      placeholder="請輸入密碼"
+      autocomplete="current-password"
+    >
+    <button class="btn-login" onclick="doLogin()">進入管理介面</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── Admin app ── -->
+<div id="adminApp">
+  <div class="top-bar">
+    <div class="top-bar-title">尾牙抽獎 · 後台管理</div>
+    <button class="btn-save" id="btnSave" onclick="saveToSupabase()">儲存到雲端</button>
+    <span id="autoSaveStatus"></span>
+    <button class="btn-csv" style="padding: 8px 20px;" onclick="window.open('https://liuc7721.github.io/shuttle-lottery','_blank')">尾牙抽獎首頁</button>
+    <button class="btn-csv" onclick="window.location.href='eligible.html'">可抽獎名單</button>
+    <button class="btn-csv" onclick="openCsvModal()">匯入 CSV</button>
+    <button class="btn-export" onclick="exportAsCsv()">匯出 CSV</button>
+    <button class="btn-logout" onclick="doLogout()">登出</button>
+  </div>
+
+  <div class="admin-main">
+    <!-- Event info -->
+    <div class="info-card">
+      <div class="section-label">活動資訊</div>
+      <div class="info-row">
+        <label>年度</label>
+        <input class="field" id="fYear" type="number" placeholder="2026">
+      </div>
+      <div class="info-row">
+        <label>活動名稱</label>
+        <input class="field" id="fEvent" type="text" placeholder="五崧科技 尾牙晚宴">
+      </div>
+    </div>
+
+    <!-- Tip card -->
+    <div class="tip-card">
+      <div class="section-label">操作提示</div>
+      <ul class="tip-list">
+        <li>在得獎欄位輸入<strong>流水號</strong>，系統會自動帶入工號、姓名、部門，帶入後欄位鎖定以防手誤</li>
+        <li>也可輸入<strong>工號</strong>反查流水號與其他資料</li>
+        <li>新增或刪除得獎者後，系統會<strong>自動儲存</strong>到雲端，無需手動按「儲存到雲端」</li>
+      </ul>
+    </div>
+
+    <!-- Prize list -->
+    <div id="prizeList"></div>
+
+    <button class="btn-add-prize" onclick="addPrize()">＋ 新增獎項</button>
+  </div>
+</div>
+
+<datalist id="empList"></datalist>
+<datalist id="snList"></datalist>
+
+<!-- ── CSV Import modal ── -->
+<div class="modal-overlay" id="csvModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">匯入 CSV 得獎名單</div>
+      <button class="modal-close" onclick="closeCsvModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-note">
+        CSV 欄位格式（第一行為標題列，之後每行一筆得獎者）：
+      </div>
+      <div class="csv-format-box">sn,prize_rank,prize_name,emp_id,name,dept<br>5001,1,頭獎,1,邱文賢,董事長室<br>5002,2,特獎,3,鄭彩華,董事長室</div>
+      <div class="modal-note" style="margin-bottom: 10px;">
+        匯入後將取代目前所有獎項與得獎者資料，請確認後再儲存到雲端。
+      </div>
+      <label class="csv-upload-area" id="csvDropArea">
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" onchange="onCsvFileSelected(this)">
+        <div class="csv-upload-icon">📂</div>
+        <div class="csv-upload-label">點擊選擇 CSV 檔案</div>
+        <div class="csv-upload-sub">或拖曳檔案到此區域</div>
+      </label>
+      <div class="csv-preview" id="csvPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-import" id="btnImport" onclick="doImportCsv()" disabled>匯入資料</button>
+      <button class="btn-copy" onclick="closeCsvModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<script src="data/winners.js"></script>
+<script>
+  // ─────────────────────────────────────────────
+  // SUPABASE CONFIG — 填入你的 Supabase 連線資訊
+  // ─────────────────────────────────────────────
+  const SUPABASE_URL      = 'https://fdaehvslcoiagwkepauw.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkYWVodnNsY29pYWd3a2VwYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NjU5NjUsImV4cCI6MjA4ODM0MTk2NX0.7wVYRVtzqTU6IP8pDQ7WFkNybwD3GMHTrJ6sRErGSNg';
+
+  const _supabase = (SUPABASE_URL !== 'YOUR_SUPABASE_URL')
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+  // ─────────────────────────────────────────────
+  // ADMIN EMAIL — 與 Supabase Authentication 的帳號 email 一致
+  // 建立方式：Supabase 後台 → Authentication → Users → Add user
+  // ─────────────────────────────────────────────
+  const ADMIN_EMAIL = 'hsciou@shuttle.com.tw';   // ← 改成你在 Supabase Auth 建立的 email
+
+  // ── State ────────────────────────────────────
+  let data;
+  let _employeeMap = {};
+  let _snMap = {};
+  let _autoSaveTimer = null;
+  let _dataLoaded    = false;   // guard: prevent auto-save before initAdmin() renders
+
+  // ── Auto-login if Supabase session still active ───────
+  (async () => {
+    if (!_supabase) return;
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminApp').style.display = 'block';
+      initAdmin();
+    }
+  })();
+
+  // ── Auth ─────────────────────────────────────
+  async function doLogin() {
+    const pw  = document.getElementById('pwInput').value;
+    const btn = document.querySelector('.btn-login');
+    btn.disabled = true;
+    btn.textContent = '驗證中…';
+
+    if (!_supabase) {
+      document.getElementById('loginError').textContent = '尚未設定 Supabase 連線';
+      btn.disabled = false;
+      btn.textContent = '進入管理介面';
+      return;
+    }
+
+    const { error } = await _supabase.auth.signInWithPassword({
+      email:    ADMIN_EMAIL,
+      password: pw
+    });
+
+    btn.disabled = false;
+    btn.textContent = '進入管理介面';
+
+    if (!error) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminApp').style.display = 'block';
+      initAdmin();
+    } else {
+      document.getElementById('loginError').textContent = '密碼錯誤，請再試一次';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  async function doLogout() {
+    if (_supabase) await _supabase.auth.signOut();
+    document.getElementById('adminApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('loginError').textContent = '';
+  }
+
+  async function initAdmin() {
+    const fallback = JSON.parse(JSON.stringify(LOTTERY_DATA));
+    data = { year: fallback.year, event: fallback.event, prizes: [] };
+    document.getElementById('fYear').value  = data.year;
+    document.getElementById('fEvent').value = data.event;
+
+    if (_supabase) {
+      document.getElementById('prizeList').innerHTML =
+        '<div style="text-align:center;padding:40px;color:var(--muted)">載入中…</div>';
+
+      const [
+        { data: prizeRows,  error: prizeErr  },
+        { data: winnerRows, error: winnerErr },
+        { data: empRows,    error: empErr    }
+      ] = await Promise.all([
+        _supabase.from('prizes').select('*').order('prize_rank', { ascending: true }),
+        _supabase.from('winners').select('*').order('prize_rank', { ascending: true }),
+        _supabase.from('employees').select('*')
+      ]);
+
+      // Build employee autocomplete map + datalist
+      if (!empErr && empRows) {
+        empRows.forEach(e => {
+          _employeeMap[String(e.emp_id).toUpperCase()] = e;
+          if (e.sn) _snMap[String(e.sn)] = e;
+        });
+        document.getElementById('empList').innerHTML = empRows
+          .map(e => `<option value="${escHtml(e.emp_id)}">${escHtml(e.name)} — ${escHtml(e.dept)}</option>`)
+          .join('');
+        document.getElementById('snList').innerHTML = empRows
+          .filter(e => e.sn)
+          .map(e => `<option value="${escHtml(e.sn)}">${escHtml(e.emp_id || '')} ${escHtml(e.name)}</option>`)
+          .join('');
+      }
+
+      if (prizeErr || winnerErr) {
+        data.prizes = fallback.prizes;
+        showToast('雲端讀取失敗，顯示本機備份資料', 'error');
+      } else if (prizeRows && prizeRows.length > 0) {
+        const winnerMap = new Map();
+        (winnerRows || []).forEach(r => {
+          if (!winnerMap.has(r.prize_rank)) winnerMap.set(r.prize_rank, []);
+          winnerMap.get(r.prize_rank).push({ sn: r.sn || '', empId: r.emp_id || '', name: r.name, dept: r.dept || '' });
+        });
+        data.prizes = prizeRows.map(p => ({
+          id:        p.prize_rank,
+          rank:      p.prize_rank,
+          name:      p.prize_name,
+          value:     p.prize_value || 0,
+          count:     p.prize_count || 0,
+          protected: p.prize_rank >= 1 && p.prize_rank <= 7,
+          winners:   winnerMap.get(p.prize_rank) || []
+        }));
+      }
+      // prizeRows empty → data.prizes stays [] (empty panel)
+    } else {
+      data.prizes = fallback.prizes;
+    }
+
+    renderPrizes();
+    _dataLoaded = true;
+  }
+
+  // ── Sync fields → data ───────────────────────
+  function syncMeta() {
+    data.year  = parseInt(document.getElementById('fYear').value)  || data.year;
+    data.event = document.getElementById('fEvent').value.trim()    || data.event;
+  }
+
+  function syncAll() {
+    syncMeta();
+    const cards = document.querySelectorAll('.prize-card');
+    data.prizes = Array.from(cards).map((card, ci) => {
+      const name  = card.querySelector('.ph-name-input').value.trim() || ('獎項 ' + (ci + 1));
+      const value = parseInt(card.querySelector('.ph-value-input')?.value) || 0;
+      const count = parseInt(card.querySelector('.ph-count-input')?.value) || 0;
+      const rows  = card.querySelectorAll('.winner-row-edit');
+      const winners = Array.from(rows).map(row => ({
+        sn:    row.querySelector('.we-sn').value.trim(),
+        empId: row.querySelector('.we-empid').value.trim(),
+        name:  row.querySelector('.we-name').value.trim(),
+        dept:  row.querySelector('.we-dept').value.trim()
+      })).filter(w => w.sn || w.empId || w.name);
+      const isProtected = card.dataset.protected === 'true';
+      return { id: ci + 1, rank: ci + 1, name, value, count, protected: isProtected, winners };
+    });
+  }
+
+  // ── Render prizes ─────────────────────────────
+  function renderPrizes() {
+    const list = document.getElementById('prizeList');
+    list.innerHTML = '';
+    (data.prizes || []).forEach((prize, pi) => {
+      list.appendChild(buildPrizeCard(prize, pi));
+    });
+  }
+
+  function buildPrizeCard(prize, pi) {
+    const card = document.createElement('div');
+    card.className = 'prize-card';
+    card.dataset.pi        = pi;
+    card.dataset.protected = prize.protected ? 'true' : '';
+    const winnersHtml  = (prize.winners || []).map((w, wi) => buildWinnerRowHtml(w, wi)).join('');
+    const filledCount  = (prize.winners || []).length;
+    const actionBtn    = prize.protected
+      ? `<span class="prize-locked-label">系統獎項</span>`
+      : `<button class="btn-del-prize" onclick="deletePrize(this)">刪除獎項</button>`;
+    card.innerHTML = `
+      <div class="prize-card-header">
+        <input class="ph-name-input"  type="text"   value="${escHtml(prize.name)}"        placeholder="獎項名稱">
+        <input class="ph-value-input" type="number"  value="${prize.value ?? 0}"           placeholder="獎金 $" min="0" ${prize.protected ? 'readonly' : ''}>
+        <input class="ph-count-input" type="number"  value="${prize.count ?? 0}"           placeholder="名額"   min="0">
+        <span class="winner-slot-badge">${filledCount}/${prize.count ?? 0} 人</span>
+        ${actionBtn}
+      </div>
+      <div class="prize-body">
+        <div class="winner-headers">
+          <span class="wh wh-num">#</span>
+          <span class="wh we-sn">流水號</span>
+          <span class="wh we-empid">員工編號</span>
+          <span class="wh we-name">姓名</span>
+          <span class="wh we-dept">部門</span>
+          <span class="wh wh-del"></span>
+        </div>
+        <div class="winners-list">${winnersHtml}</div>
+        <button class="btn-add-winner" onclick="addWinner(this)">＋ 新增得獎者</button>
+      </div>`;
+    return card;
+  }
+
+  function buildWinnerRowHtml(w) {
+    return `
+      <div class="winner-row-edit">
+        <input class="we-input we-sn"    type="text" value="${escHtml(w.sn    || '')}" placeholder="流水號" list="snList">
+        <input class="we-input we-empid" type="text" value="${escHtml(w.empId || '')}" placeholder="工號"   list="empList">
+        <input class="we-input we-name"  type="text" value="${escHtml(w.name  || '')}" placeholder="姓名">
+        <input class="we-input we-dept"  type="text" value="${escHtml(w.dept  || '')}" placeholder="部門">
+        <button class="btn-del-winner" onclick="deleteWinner(this)" title="刪除">×</button>
+      </div>`;
+  }
+
+  // ── Prize actions ─────────────────────────────
+  function addPrize() {
+    syncAll();
+    data.prizes.push({ id: Date.now(), rank: data.prizes.length + 1, name: '新獎項', value: 0, count: 1, protected: false, winners: [] });
+    renderPrizes();
+    const cards = document.querySelectorAll('.prize-card');
+    cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function deletePrize(btn) {
+    const card = btn.closest('.prize-card');
+    if (!confirm('確定要刪除這個獎項嗎？')) return;
+    syncAll();
+    const pi = Array.from(document.querySelectorAll('.prize-card')).indexOf(card);
+    data.prizes.splice(pi, 1);
+    renderPrizes();
+  }
+
+  function addWinner(btn) {
+    const prizeBody = btn.closest('.prize-body');
+    const prizeCard = prizeBody.closest('.prize-card');
+    const maxCount  = parseInt(prizeCard.querySelector('.ph-count-input')?.value) || 0;
+    const filled    = prizeBody.querySelectorAll('.winner-row-edit').length;
+    if (maxCount > 0 && filled >= maxCount) {
+      showToast(`此獎項名額已滿（${maxCount} 人）`, 'error');
+      return;
+    }
+    const wList = prizeBody.querySelector('.winners-list');
+    wList.insertAdjacentHTML('beforeend', buildWinnerRowHtml({}));
+    wList.lastElementChild?.querySelector('input')?.focus();
+    updateSlotBadge(prizeCard);
+  }
+
+  function deleteWinner(btn) {
+    if (!confirm('確定要刪除這筆得獎者嗎？')) return;
+    const prizeCard = btn.closest('.prize-card');
+    btn.closest('.winner-row-edit').remove();
+    updateSlotBadge(prizeCard);
+    scheduleAutoSave();
+  }
+
+  function updateSlotBadge(prizeCard) {
+    const filled   = prizeCard.querySelectorAll('.winner-row-edit').length;
+    const maxCount = parseInt(prizeCard.querySelector('.ph-count-input')?.value) || 0;
+    const badge    = prizeCard.querySelector('.winner-slot-badge');
+    if (badge) badge.textContent = `${filled}/${maxCount} 人`;
+  }
+
+  // ━━━━━━━━━━━━━━━━━━ Supabase Save ━━━━━━━━━━━━━━━━━━
+  async function saveToSupabase() {
+    if (!_supabase) {
+      showToast('尚未設定 Supabase 連線資訊，請先填入 SUPABASE_URL 與 SUPABASE_ANON_KEY', 'error');
+      return;
+    }
+    syncAll();
+
+    const rows = [];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        rows.push({
+          prize_rank: prize.rank,
+          prize_name: prize.name,
+          sn:         w.sn   || null,
+          emp_id:     w.empId || null,
+          name:       w.name,
+          dept:       w.dept
+        });
+      });
+    });
+
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.textContent = '儲存中…';
+
+    // 清除舊資料，再全部寫入
+    const { error: delErr } = await _supabase.from('winners').delete().gte('id', 0);
+    if (delErr) {
+      showToast('刪除舊資料失敗：' + delErr.message, 'error');
+      btn.disabled = false;
+      btn.textContent = '儲存到雲端';
+      return;
+    }
+
+    if (rows.length > 0) {
+      const { error: insErr } = await _supabase.from('winners').insert(rows);
+      if (insErr) {
+        showToast('寫入失敗：' + insErr.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '儲存到雲端';
+        return;
+      }
+    }
+
+    // 同步更新 prizes 結構
+    const prizeRows = data.prizes.map(p => ({
+      prize_rank:  p.rank,
+      prize_name:  p.name,
+      prize_value: p.value || 0,
+      prize_count: p.count || 0
+    }));
+    const { error: delPrizeErr } = await _supabase.from('prizes').delete().gte('prize_rank', 0);
+    if (!delPrizeErr && prizeRows.length > 0) {
+      await _supabase.from('prizes').insert(prizeRows);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '儲存到雲端';
+    showToast('已成功儲存到 Supabase！', 'success');
+  }
+
+  // ━━━━━━━━━━━━━━━━━━ Auto-Save ━━━━━━━━━━━━━━━━━━
+  function scheduleAutoSave() {
+    if (!_dataLoaded) return;   // initAdmin() not done yet, do not overwrite DB
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => autoSave(), 800);
+  }
+
+  let _autoSaveFadeTimer;
+  async function autoSave() {
+    if (!_supabase) return;
+    syncAll();
+
+    const statusEl = document.getElementById('autoSaveStatus');
+    statusEl.className = '';
+    statusEl.textContent = '同步中…';
+
+    const rows = [];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        rows.push({
+          prize_rank: prize.rank,
+          prize_name: prize.name,
+          sn:         w.sn    || null,
+          emp_id:     w.empId || null,
+          name:       w.name,
+          dept:       w.dept
+        });
+      });
+    });
+
+    const { error: delErr } = await _supabase.from('winners').delete().gte('id', 0);
+    if (delErr) {
+      statusEl.textContent = '⚠ 同步失敗';
+      showToast('自動同步失敗：' + delErr.message, 'error');
+      return;
+    }
+
+    if (rows.length > 0) {
+      const { error: insErr } = await _supabase.from('winners').insert(rows);
+      if (insErr) {
+        statusEl.textContent = '⚠ 同步失敗';
+        showToast('自動同步失敗：' + insErr.message, 'error');
+        return;
+      }
+    }
+
+    // prizes 表（獎項結構）不在 auto-save 範圍內，由手動「儲存到雲端」負責
+    statusEl.textContent = '✓ 已同步';
+    clearTimeout(_autoSaveFadeTimer);
+    _autoSaveFadeTimer = setTimeout(() => {
+      statusEl.classList.add('fade');
+      setTimeout(() => { statusEl.textContent = ''; statusEl.className = ''; }, 500);
+    }, 2000);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━ CSV Import ━━━━━━━━━━━━━━━━━━
+  let _csvParsed = null;
+
+  function openCsvModal() {
+    _csvParsed = null;
+    document.getElementById('csvFileInput').value = '';
+    document.getElementById('csvPreview').style.display = 'none';
+    document.getElementById('btnImport').disabled = true;
+    document.getElementById('csvModal').classList.add('open');
+  }
+  function closeCsvModal() {
+    document.getElementById('csvModal').classList.remove('open');
+  }
+
+  function onCsvFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => parseCsvText(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function parseCsvText(text) {
+    const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      showToast('CSV 格式錯誤：至少需要標題列與一行資料', 'error');
+      return;
+    }
+
+    // 偵測格式：從標題行判斷是否含 sn 欄
+    const header      = lines[0].toLowerCase().replace(/\s/g, '');
+    const isNewFormat = header.startsWith('sn,');
+    const dataLines   = lines.slice(1);
+    const prizeMap    = new Map(); // rank → { name, winners[] }
+
+    for (const line of dataLines) {
+      const cols = parseCsvLine(line);
+      if (cols.length < (isNewFormat ? 6 : 5)) continue;
+      let sn, rank, prize_name, emp_id, name, dept;
+      if (isNewFormat) {
+        [sn, rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
+      } else {
+        [rank, prize_name, emp_id, name, dept] = cols.map(c => c.trim());
+        sn = '';
+      }
+      const r = parseInt(rank);
+      if (!r) continue;
+      if (!prizeMap.has(r)) prizeMap.set(r, { rank: r, name: prize_name, winners: [] });
+      if (sn || emp_id || name) {
+        prizeMap.get(r).winners.push({ sn: sn || '', empId: emp_id || '', name: name || '', dept: dept || '' });
+      }
+    }
+
+    const prizes = Array.from(prizeMap.values()).sort((a, b) => a.rank - b.rank);
+    const totalWinners = prizes.reduce((s, p) => s + p.winners.length, 0);
+
+    _csvParsed = prizes;
+    const preview = document.getElementById('csvPreview');
+    preview.style.display = 'block';
+    preview.textContent = `已解析：${prizes.length} 個獎項，共 ${totalWinners} 位得獎者`;
+    document.getElementById('btnImport').disabled = false;
+  }
+
+  function parseCsvLine(line) {
+    const result = [];
+    let cur = '', inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuote = !inQuote; continue; }
+      if (ch === ',' && !inQuote) { result.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    result.push(cur);
+    return result;
+  }
+
+  function doImportCsv() {
+    if (!_csvParsed) return;
+    syncMeta();
+    data.prizes = _csvParsed.map((p, i) => ({
+      id:      i + 1,
+      rank:    p.rank,
+      name:    p.name,
+      winners: p.winners
+    }));
+    renderPrizes();
+    closeCsvModal();
+    showToast('CSV 已匯入，請確認資料後按「儲存到雲端」', 'success');
+  }
+
+  // Drag-and-drop on CSV upload area
+  const dropArea = document.getElementById('csvDropArea');
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.borderColor = '#003399'; });
+  dropArea.addEventListener('dragleave', () => { dropArea.style.borderColor = ''; });
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault();
+    dropArea.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => parseCsvText(ev.target.result);
+      reader.readAsText(file, 'UTF-8');
+    }
+  });
+
+  // ━━━━━━━━━━━━━━━━━━ Export CSV ━━━━━━━━━━━━━━━━━━
+  function exportAsCsv() {
+    syncAll();
+    const lines = ['sn,prize_rank,prize_name,emp_id,name,dept'];
+    data.prizes.forEach(prize => {
+      prize.winners.forEach(w => {
+        lines.push([w.sn || '', prize.rank, prize.name, w.empId, w.name, w.dept]
+          .map(v => String(v).includes(',') ? `"${v}"` : v).join(','));
+      });
+    });
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), { href: url, download: 'winners.csv' }).click();
+    URL.revokeObjectURL(url);
+  }
+
+  // click outside modal to close
+  document.getElementById('csvModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCsvModal();
+  });
+
+  // Autocomplete — SN fills all fields; emp_id fills name+dept+sn
+  // After autocomplete, filled fields are locked (readonly) to prevent accidental edits.
+  // Clearing the SN or emp_id field unlocks the dependent fields.
+  function lockFields(row, selectors) {
+    selectors.forEach(sel => {
+      const el = row.querySelector(sel);
+      if (el) el.setAttribute('readonly', '');
+    });
+  }
+  function unlockFields(row, selectors) {
+    selectors.forEach(sel => {
+      const el = row.querySelector(sel);
+      if (el) el.removeAttribute('readonly');
+    });
+  }
+
+  document.getElementById('prizeList').addEventListener('input', function(e) {
+    const row = e.target.closest('.winner-row-edit');
+    if (!row) return;
+
+    if (e.target.classList.contains('we-sn')) {
+      const val = e.target.value.trim();
+      if (!val) {
+        // SN cleared → unlock dependent fields and clear them
+        unlockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+        row.querySelector('.we-empid').value = '';
+        row.querySelector('.we-name').value  = '';
+        row.querySelector('.we-dept').value  = '';
+        return;
+      }
+      const emp = _snMap[val];
+      if (emp) {
+        row.querySelector('.we-empid').value = emp.emp_id || '';
+        row.querySelector('.we-name').value  = emp.name;
+        row.querySelector('.we-dept').value  = emp.dept || '';
+        lockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+      } else {
+        unlockFields(row, ['.we-empid', '.we-name', '.we-dept']);
+      }
+      return;
+    }
+
+    if (e.target.classList.contains('we-empid')) {
+      const val = e.target.value.trim();
+      if (!val) {
+        unlockFields(row, ['.we-sn', '.we-name', '.we-dept']);
+        return;
+      }
+      const emp = _employeeMap[val.toUpperCase()];
+      if (emp) {
+        row.querySelector('.we-name').value  = emp.name;
+        row.querySelector('.we-dept').value  = emp.dept || '';
+        if (emp.sn) row.querySelector('.we-sn').value = emp.sn;
+        lockFields(row, ['.we-name', '.we-dept', ...(emp.sn ? ['.we-sn'] : [])]);
+      } else {
+        unlockFields(row, ['.we-sn', '.we-name', '.we-dept']);
+      }
+    }
+  });
+
+  // Auto-save on winner row blur
+  document.getElementById('prizeList').addEventListener('focusout', function(e) {
+    const row = e.target.closest('.winner-row-edit');
+    if (!row) return;
+    const hasSn   = row.querySelector('.we-sn').value.trim();
+    const hasName = row.querySelector('.we-name').value.trim();
+    if (!hasSn && !hasName) return; // empty row, skip
+    scheduleAutoSave();
+  });
+
+  // ── Toast ────────────────────────────────────
+  let _toastTimer;
+  function showToast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type ? `show ${type}` : 'show';
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
